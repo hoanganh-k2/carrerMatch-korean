@@ -31,6 +31,7 @@ export class PrismaService
         );
       }
     }
+    console.log('--- RESOLVED CONNECTION STRING:', connectionString);
     const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
     super({ adapter });

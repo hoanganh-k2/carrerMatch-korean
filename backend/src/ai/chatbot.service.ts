@@ -28,13 +28,53 @@ export class ChatbotService {
     const vectorString = `[${queryVector.join(',')}]`;
 
     // Quét top 3 công việc phù hợp nhất ngữ nghĩa câu hỏi trong database
-    const dynamicJobs: any[] = await this.prisma.$queryRaw`
-      SELECT title, description, required_skills, min_topik_required, location
-      FROM job_postings
-      WHERE status = 'active'
-      ORDER BY jd_embedding <=> ${vectorString}::vector ASC
-      LIMIT 3;
-    `;
+    let dynamicJobs: any[] = [];
+    try {
+      dynamicJobs = await this.prisma.$queryRaw`
+        SELECT title, description, required_skills, min_topik_required, location
+        FROM job_postings
+        WHERE status = 'active'
+        ORDER BY jd_embedding <=> ${vectorString}::vector ASC
+        LIMIT 3;
+      `;
+    } catch (err: any) {
+      if (err.message?.includes('vector') || err.code === 'P2010') {
+        const allJobs = await this.prisma.jobPosting.findMany({
+          where: { status: 'active' },
+        });
+        const scored = allJobs.map((job) => {
+          let score = 0.0;
+          if (job.jdEmbedding) {
+            try {
+              let jobVec: number[] = [];
+              try {
+                jobVec = JSON.parse(job.jdEmbedding) as number[];
+              } catch {
+                const cleaned = job.jdEmbedding
+                  .replace('[', '')
+                  .replace(']', '');
+                jobVec = cleaned.split(',').map(Number);
+              }
+              score = cosineSimilarity(queryVector, jobVec);
+            } catch {
+              // ignore
+            }
+          }
+          return {
+            title: job.title,
+            description: job.description,
+            required_skills: job.requiredSkills,
+            min_topik_required: job.minTopikRequired,
+            location: job.location,
+            score,
+          };
+        });
+        scored.sort((a, b) => b.score - a.score);
+        dynamicJobs = scored.slice(0, 3);
+      } else {
+        throw err;
+      }
+    }
 
     // 3. Xây dựng ngữ cảnh dữ liệu hệ thống (System Prompt + Context Data)
     const jobsContext = dynamicJobs
@@ -66,10 +106,10 @@ export class ChatbotService {
     // 4. Gọi mô hình Gemini để sinh câu trả lời thông minh dựa trên dữ liệu hệ thống
     const response = await this.ai.models.generateContent({
       model: 'gemini-2.5-flash', // Sử dụng model có tốc độ phản hồi tối ưu
-      contents: [
-        { role: 'system', parts: [{ text: systemInstruction }] },
-        { role: 'user', parts: [{ text: userMessage }] },
-      ],
+      contents: userMessage,
+      config: {
+        systemInstruction: systemInstruction,
+      },
     });
 
     return {
@@ -77,4 +117,18 @@ export class ChatbotService {
       retrievedJobsCount: dynamicJobs.length, // Trả về số lượng bản ghi đã truy vấn để chứng minh với hội đồng
     };
   }
+}
+
+function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  let dotProduct = 0.0;
+  let normA = 0.0;
+  let normB = 0.0;
+  const length = Math.min(vecA.length, vecB.length);
+  for (let i = 0; i < length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0.0 || normB === 0.0) return 0.0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
