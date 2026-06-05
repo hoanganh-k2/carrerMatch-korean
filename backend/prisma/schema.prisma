@@ -7,7 +7,8 @@ generator client {
   previewFeatures = ["postgresqlExtensions", "fullTextSearchPostgres"]
 }
 
-// 1. USER DATASET - Thêm cấu trúc năng lực tiếng Hàn (TOPIK)
+// ==================== ENUMS ====================
+
 enum Role {
   candidate
   recruiter
@@ -31,33 +32,6 @@ enum TopikLevel {
   NONE
 }
 
-model JobUser {
-  userId            String            @id @default(uuid()) @map("user_id")
-  role              Role              @default(candidate)
-  fullName          String            @map("full_name")
-  
-  // Khối năng lực Tiếng Hàn & Kỹ thuật
-  topikLevel        TopikLevel        @default(NONE) @map("topik_level")
-  koreanScore       Int?              @map("korean_score") // Điểm thi cụ thể (Ví dụ: 185/300)
-  isBrSE            Boolean           @default(false) @map("is_brse") // Có định hướng Kỹ sư cầu nối hay không
-  skillsVector      String? @map("skills_vector") // Embedding tổng hợp cả IT + Tiếng Hàn
-  skillsExtracted   String[]          @map("skills_extracted") // ['React', 'Spring Boot', 'Korean Translation', 'Business Communication']
-  
-  yearsExperience   Float?            @map("years_experience")
-  desiredSalaryMin  Int?              @map("desired_salary_min")
-  desiredSalaryMax  Int?              @map("desired_salary_max")
-  jobTypePrefs      JobType           @default(fulltime) @map("job_type_prefs")
-  locationPrefs     String[]          @map("location_prefs") // ['Hà Nội', 'Seoul', 'Remote']
-  openToWork        Boolean           @default(true) @map("open_to_work")
-  profileCompleteness Float           @default(0.0) @map("profile_completeness")
-  
-  applications      JobApplication[]
-  events            CareerEvent[]
-
-  @@map("job_users")
-}
-
-// 2. CORE-DOMAIN DATASET - Tin tuyển dụng (Hỗ trợ đa ngôn ngữ Kor/Vie)
 enum JobStatus {
   active
   paused
@@ -65,20 +39,173 @@ enum JobStatus {
   expired
 }
 
+enum ApplicationStatus {
+  applied
+  screening
+  interview
+  offer
+  rejected
+  accepted
+}
+
+enum EventType {
+  view_job
+  search
+  apply
+  save
+  profile_update
+  skill_add
+}
+
+// ==================== 0. AUTH - Tài khoản xác thực ====================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(candidate)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations - một User có thể là candidate (JobUser) hoặc recruiter (Company)
+  jobUser      JobUser?
+  company      Company?
+  userPermissions UserPermission[]
+
+  @@map("users")
+}
+
+// ==================== 1. USER DATASET - Hồ sơ ứng viên ====================
+
+model JobUser {
+  userId            String            @id @map("user_id") // = User.id (FK)
+  fullName          String            @map("full_name")
+
+  // Khối năng lực Tiếng Hàn & Kỹ thuật
+  topikLevel        TopikLevel        @default(NONE) @map("topik_level")
+  koreanScore       Int?              @map("korean_score")
+  isBrSE            Boolean           @default(false) @map("is_brse")
+  skillsVector      String?           @map("skills_vector")
+  skillsExtracted   String[]          @map("skills_extracted")
+
+  yearsExperience   Float?            @map("years_experience")
+  desiredSalaryMin  Int?              @map("desired_salary_min")
+  desiredSalaryMax  Int?              @map("desired_salary_max")
+  jobTypePrefs      JobType           @default(fulltime) @map("job_type_prefs")
+  locationPrefs     String[]          @map("location_prefs")
+  openToWork        Boolean           @default(true) @map("open_to_work")
+  profileCompleteness Float           @default(0.0) @map("profile_completeness")
+
+  // Relations
+  user              User              @relation(fields: [userId], references: [id])
+  applications      JobApplication[]
+  events            CareerEvent[]
+  resumes           Resume[]
+
+  @@map("job_users")
+}
+
+// ==================== 2. COMPANY - Hồ sơ nhà tuyển dụng ====================
+
+model Company {
+  companyId    String   @id @default(uuid()) @map("company_id")
+  userId       String   @unique @map("user_id") // recruiter account
+  companyName  String   @map("company_name")
+  logoUrl      String?  @map("logo_url")
+  website      String?
+  industry     String?
+  companySize  String?  @map("company_size") // "1-50", "51-200", "201-500", "500+"
+  description  String?  @db.Text
+  location     String?
+  isVerified   Boolean  @default(false) @map("is_verified")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id])
+  jobPostings  JobPosting[]
+
+  @@map("companies")
+}
+
+// ==================== 3. RESUME - CV chi tiết ứng viên ====================
+
+model Resume {
+  resumeId       String   @id @default(uuid()) @map("resume_id")
+  userId         String   @map("user_id")
+  title          String   // "CV BrSE - Nguyễn Văn A"
+  summary        String?  @db.Text
+  fileUrl        String?  @map("file_url")
+  isDefault      Boolean  @default(false) @map("is_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Chi tiết CV
+  jobUser        JobUser          @relation(fields: [userId], references: [userId])
+  experiences    WorkExperience[]
+  educations     Education[]
+  certifications Certification[]
+
+  @@map("resumes")
+}
+
+model WorkExperience {
+  id          String    @id @default(uuid())
+  resumeId    String    @map("resume_id")
+  company     String
+  position    String
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  isCurrent   Boolean   @default(false) @map("is_current")
+  description String?   @db.Text
+
+  resume      Resume    @relation(fields: [resumeId], references: [resumeId])
+
+  @@map("work_experiences")
+}
+
+model Education {
+  id          String  @id @default(uuid())
+  resumeId    String  @map("resume_id")
+  school      String
+  degree      String  // "Đại học", "Thạc sĩ"
+  major       String
+  startYear   Int     @map("start_year")
+  endYear     Int?    @map("end_year")
+
+  resume      Resume  @relation(fields: [resumeId], references: [resumeId])
+
+  @@map("educations")
+}
+
+model Certification {
+  id        String    @id @default(uuid())
+  resumeId  String    @map("resume_id")
+  name      String    // "TOPIK II Level 5"
+  issuer    String?
+  issuedAt  DateTime? @map("issued_at")
+  expiresAt DateTime? @map("expires_at")
+
+  resume    Resume    @relation(fields: [resumeId], references: [resumeId])
+
+  @@map("certifications")
+}
+
+// ==================== 4. CORE DOMAIN - Tin tuyển dụng ====================
+
 model JobPosting {
   jobId               String           @id @default(uuid()) @map("job_id")
   companyId           String           @map("company_id")
-  
-  // Tiêu đề và JD bằng tiếng Hàn hoặc tiếng Việt
-  title               String           // Ví dụ: [Hà Nội] Tuyển dụng BrSE (Tiếng Hàn TOPIK 5 trở lên)
-  description         String           @db.Text // Mô tả chi tiết các tác vụ dịch thuật, quản lý dự án, coding
-  jdEmbedding         String? @map("jd_embedding") // Embedding lưu thông tin ngữ nghĩa đa ngôn ngữ
-  
-  // Yêu cầu ngôn ngữ & Kỹ thuật cốt lõi
+
+  title               String
+  description         String           @db.Text
+  jdEmbedding         String?          @map("jd_embedding")
+
   minTopikRequired    TopikLevel       @default(NONE) @map("min_topik_required")
-  requiredSkills      String[]         @map("required_skills") // ['Java', 'Korean Translation', 'Jira']
+  requiredSkills      String[]         @map("required_skills")
   preferredSkills     String[]         @map("preferred_skills")
-  
+
   salaryMin           Int?             @map("salary_min")
   salaryMax           Int?             @map("salary_max")
   jobType             JobType          @map("job_type")
@@ -89,30 +216,25 @@ model JobPosting {
   viewsCount          Int              @default(0) @map("views_count")
   applyCount          Int              @default(0) @map("apply_count")
 
+  // Relations
+  company             Company?         @relation(fields: [companyId], references: [companyId])
   applications        JobApplication[]
   events              CareerEvent[]
 
   @@map("job_postings")
 }
 
-// 3. QUALITY & FEEDBACK DATASET - Đánh giá & Matching hồ sơ
-enum ApplicationStatus {
-  applied
-  screening
-  interview
-  offer
-  rejected
-  accepted
-}
+// ==================== 5. QUALITY & FEEDBACK - Đơn ứng tuyển ====================
 
 model JobApplication {
   applicationId      String            @id @default(uuid()) @map("application_id")
   jobId              String            @map("job_id")
   candidateId        String            @map("candidate_id")
-  matchScore         Float             @map("match_score") // Điểm matching AI
-  matchBreakdownJson Json              @map("match_breakdown_json") // Phân rã điểm: { "it_skill": 0.8, "korean_skill": 0.9, "experience": 0.7 }
+  resumeId           String?           @map("resume_id") // CV đính kèm
+  matchScore         Float             @map("match_score")
+  matchBreakdownJson Json              @map("match_breakdown_json")
   status             ApplicationStatus @default(applied)
-  coverLetter        String?           @map("cover_letter") // Có thể viết bằng tiếng Hàn
+  coverLetter        String?           @map("cover_letter")
   recruiterNote      String?           @map("recruiter_note")
   recruiterRating    Int?              @map("recruiter_rating")
   stageTimestamps    Json              @map("stage_timestamps")
@@ -123,14 +245,15 @@ model JobApplication {
   @@map("job_applications")
 }
 
-// 4. TAXONOMY & RELATION DATASET - Chuẩn hóa từ điển kỹ năng IT & Ngôn ngữ
+// ==================== 6. TAXONOMY - Từ điển kỹ năng ====================
+
 model SkillTaxonomy {
   skillId         String            @id @default(uuid()) @map("skill_id")
-  skillName       String            @unique @map("skill_name") // 'Cơ sở dữ liệu', '한국어', 'Interpretation'
-  skillEmbedding  String? @map("skill_embedding") 
-  category        String            // 'Programming', 'Language', 'Methodology'
+  skillName       String            @unique @map("skill_name")
+  skillEmbedding  String?           @map("skill_embedding")
+  category        String
   parentSkillId   String?           @map("parent_skill_id")
-  aliases         String[]          @map("aliases") // ['Tiếng Hàn thương mại', 'Business Korean', '비즈니스 한국어']
+  aliases         String[]          @map("aliases")
   demandScore     Float             @default(0.0) @map("demand_score")
 
   parent          SkillTaxonomy?    @relation("SkillHierarchy", fields: [parentSkillId], references: [skillId])
@@ -139,22 +262,14 @@ model SkillTaxonomy {
   @@map("skill_taxonomy")
 }
 
-// 5. METADATA & ANALYTICS DATASET - Log hành vi tìm kiếm
-enum EventType {
-  view_job
-  search
-  apply
-  save
-  profile_update
-  skill_add
-}
+// ==================== 7. ANALYTICS - Log hành vi ====================
 
 model CareerEvent {
   eventId           BigInt            @id @default(autoincrement()) @map("event_id")
   userId            String            @map("user_id")
   eventType         EventType         @map("event_type")
   jobId             String?           @map("job_id")
-  searchQuery       String?           @map("search_query") // Thống kê xem user hay tìm bằng từ khóa "BrSE", "Tiếng Hàn" hay "Cầu nối"
+  searchQuery       String?           @map("search_query")
   searchFiltersJson Json?             @map("search_filters_json")
   clickPosition     Int?              @map("click_position")
   timeSpentSeconds  Int?              @map("time_spent_seconds")
@@ -165,4 +280,30 @@ model CareerEvent {
   job               JobPosting?       @relation(fields: [jobId], references: [jobId])
 
   @@map("career_events")
+}
+
+// ==================== 8. PERMISSIONS - Phân quyền RBAC ====================
+
+model Permission {
+  permissionId String @id @default(uuid()) @map("permission_id")
+  name         String @unique // "job:create", "user:read", "company:verify"
+  description  String?
+  resource     String // "job", "user", "company", "application"
+  action       String // "create", "read", "update", "delete", "manage"
+
+  userPermissions UserPermission[]
+
+  @@map("permissions")
+}
+
+model UserPermission {
+  userId       String   @map("user_id")
+  permissionId String   @map("permission_id")
+  grantedAt    DateTime @default(now()) @map("granted_at")
+
+  user         User       @relation(fields: [userId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [permissionId])
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
 }

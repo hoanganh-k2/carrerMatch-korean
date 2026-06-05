@@ -202,7 +202,7 @@ export class JobPostingsService {
     } catch (err: any) {
       if (err.message?.includes('vector') || err.code === 'P2010') {
         const candidates = await this.prisma.jobUser.findMany({
-          where: { role: 'candidate', openToWork: true },
+          where: { openToWork: true, user: { role: 'candidate' } },
         });
 
         let jobVector: number[] = [];

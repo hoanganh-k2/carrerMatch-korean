@@ -51,29 +51,55 @@ async function main() {
 
     // 1. Tạo 200 Người dùng (Candidates & Recruiters) -> Đạt chuẩn số lượng tối thiểu
     const users: any[] = [];
+    const recruiterCompanies: any[] = [];
     console.log('- Đang sinh 200 bản ghi Người dùng...');
 
     for (let i = 0; i < 205; i++) {
         const isCandidate = i < 180; // 180 ứng viên, 25 nhà tuyển dụng
         const topikLevels = [TopikLevel.TOPIK_II_LEVEL_3, TopikLevel.TOPIK_II_LEVEL_4, TopikLevel.TOPIK_II_LEVEL_5, TopikLevel.TOPIK_II_LEVEL_6];
 
-        const user = await prisma.jobUser.create({
+        // Tạo User account trước
+        const user = await prisma.user.create({
             data: {
+                email: faker.internet.email(),
+                passwordHash: '$2b$10$placeholderHashForSeedData000000000000000000000000000',
                 role: isCandidate ? Role.candidate : Role.recruiter,
-                fullName: isCandidate ? faker.person.fullName() : faker.helpers.arrayElement(KOREAN_NAMES) + ' (HR)',
-                topikLevel: isCandidate ? faker.helpers.arrayElement(topikLevels) : TopikLevel.NONE,
-                koreanScore: isCandidate ? faker.number.int({ min: 140, max: 280 }) : null,
-                isBrSE: isCandidate ? faker.datatype.boolean(0.6) : false, // 60% ứng viên định hướng BrSE
-                skillsExtracted: faker.helpers.arrayElements(VIETNAMESE_IT_KOREAN_SKILLS, { min: 3, max: 6 }),
-                yearsExperience: faker.number.float({ min: 0.5, max: 6, multipleOf: 0.5 }),
-                desiredSalaryMin: faker.number.int({ min: 15000000, max: 30000000 }),
-                desiredSalaryMax: faker.number.int({ min: 35000000, max: 70000000 }),
-                jobTypePrefs: faker.helpers.arrayElement([JobType.fulltime, JobType.hybrid, JobType.remote]),
-                locationPrefs: [faker.helpers.arrayElement(['Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh', 'Seoul', 'Remote'])],
-                profileCompleteness: faker.number.float({ min: 0.6, max: 1.0, multipleOf: 0.1 })
             }
         });
-        users.push(user);
+
+        if (isCandidate) {
+            // Tạo JobUser profile cho candidate
+            const jobUser = await prisma.jobUser.create({
+                data: {
+                    userId: user.id,
+                    fullName: faker.person.fullName(),
+                    topikLevel: faker.helpers.arrayElement(topikLevels),
+                    koreanScore: faker.number.int({ min: 140, max: 280 }),
+                    isBrSE: faker.datatype.boolean(0.6),
+                    skillsExtracted: faker.helpers.arrayElements(VIETNAMESE_IT_KOREAN_SKILLS, { min: 3, max: 6 }),
+                    yearsExperience: faker.number.float({ min: 0.5, max: 6, multipleOf: 0.5 }),
+                    desiredSalaryMin: faker.number.int({ min: 15000000, max: 30000000 }),
+                    desiredSalaryMax: faker.number.int({ min: 35000000, max: 70000000 }),
+                    jobTypePrefs: faker.helpers.arrayElement([JobType.fulltime, JobType.hybrid, JobType.remote]),
+                    locationPrefs: [faker.helpers.arrayElement(['Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh', 'Seoul', 'Remote'])],
+                    profileCompleteness: faker.number.float({ min: 0.6, max: 1.0, multipleOf: 0.1 })
+                }
+            });
+            users.push(jobUser);
+        } else {
+            // Tạo Company profile cho recruiter
+            const company = await prisma.company.create({
+                data: {
+                    userId: user.id,
+                    companyName: faker.helpers.arrayElement(KOREAN_NAMES) + ' IT Solutions',
+                    industry: 'Information Technology',
+                    companySize: faker.helpers.arrayElement(['1-50', '51-200', '201-500', '500+']),
+                    location: faker.helpers.arrayElement(['Hà Nội', 'Hồ Chí Minh', 'Seoul']),
+                    isVerified: faker.datatype.boolean(0.7),
+                }
+            });
+            recruiterCompanies.push(company);
+        }
     }
 
     // 2. Tạo 500 Tin tuyển dụng -> Đạt chuẩn số lượng tối thiểu
@@ -83,7 +109,9 @@ async function main() {
     for (let i = 0; i < 510; i++) {
         const job = await prisma.jobPosting.create({
             data: {
-                companyId: faker.string.uuid(),
+                companyId: recruiterCompanies.length > 0 
+                    ? faker.helpers.arrayElement(recruiterCompanies).companyId 
+                    : faker.string.uuid(),
                 title: faker.helpers.arrayElement(JOB_TITLES),
                 description: faker.helpers.arrayElement(JOB_DESCRIPTIONS),
                 minTopikRequired: faker.helpers.arrayElement([TopikLevel.TOPIK_II_LEVEL_3, TopikLevel.TOPIK_II_LEVEL_4, TopikLevel.TOPIK_II_LEVEL_5]),

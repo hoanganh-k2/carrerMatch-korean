@@ -104,19 +104,83 @@ export class ChatbotService {
     `;
 
     // 4. Gọi mô hình Gemini để sinh câu trả lời thông minh dựa trên dữ liệu hệ thống
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-2.5-flash', // Sử dụng model có tốc độ phản hồi tối ưu
-      contents: userMessage,
-      config: {
-        systemInstruction: systemInstruction,
-      },
-    });
+    let replyText = '';
+    try {
+      const response = await this.ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: userMessage,
+        config: {
+          systemInstruction: systemInstruction,
+        },
+      });
+      replyText = response.text || '';
+    } catch (error25) {
+      console.warn('Gemini 2.5 Flash error, trying 1.5 Flash:', error25);
+      try {
+        const response15 = await this.ai.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: userMessage,
+          config: {
+            systemInstruction: systemInstruction,
+          },
+        });
+        replyText = response15.text || '';
+      } catch (error15) {
+        console.error('All Gemini models failed. Activating programmatic fallback.', error15);
+        
+        const candidateName = userProfile?.fullName || 'ứng viên';
+        const topik = userProfile?.topikLevel ? formatTopikDisplay(userProfile.topikLevel) : 'chưa cập nhật';
+        const userSkills = userProfile?.skillsExtracted || [];
+        
+        let analysis = `Chào bạn ${candidateName}! Rất tiếc, máy chủ AI chính hiện đang bận do lượng truy cập cao từ phía nhà cung cấp, nhưng tôi đã phân tích nhanh hồ sơ của bạn đối chiếu với cơ sở dữ liệu việc làm thực tế:\n\n`;
+        analysis += `**1. Đánh giá hồ sơ của bạn:**\n`;
+        analysis += `* Trình độ tiếng Hàn: **${topik}**\n`;
+        analysis += `* Kỹ năng chuyên môn hiện có: **${userSkills.join(', ') || 'Chưa cập nhật'}**\n\n`;
+        
+        if (dynamicJobs.length > 0) {
+          analysis += `**2. Đề xuất việc làm phù hợp nhất từ hệ thống:**\n`;
+          dynamicJobs.forEach((job, idx) => {
+            const jobTopik = formatTopikDisplay(job.min_topik_required || job.minTopikRequired);
+            const jobSkills = job.required_skills || job.requiredSkills || [];
+            analysis += `* **Việc làm ${idx + 1}:** ${job.title} (${job.location})\n`;
+            analysis += `  * Yêu cầu tiếng Hàn: **${jobTopik}**\n`;
+            analysis += `  * Yêu cầu công nghệ: **${jobSkills.join(', ')}**\n`;
+            
+            // Check missing skills
+            const missing = jobSkills.filter((s: string) => !userSkills.some((us: string) => us.toLowerCase() === s.toLowerCase()));
+            if (missing.length > 0) {
+              analysis += `  * Kỹ năng bạn cần bổ sung: **${missing.join(', ')}**\n`;
+            } else {
+              analysis += `  * Phù hợp hoàn hảo về kỹ năng công nghệ!\n`;
+            }
+          });
+          analysis += `\n**3. Lộ trình phát triển đề xuất:**\n`;
+          analysis += `* Hãy tập trung trau dồi các kỹ năng công nghệ còn thiếu được liệt kê ở trên.\n`;
+          analysis += `* Chuẩn bị CV tiếng Hàn chuẩn chỉnh để sẵn sàng ứng tuyển các cơ hội này.\n`;
+        } else {
+          analysis += `Hiện tại chưa có công việc hoạt động nào trong hệ thống trùng khớp với yêu cầu của bạn. Bạn vui lòng quay lại sau nhé!\n`;
+        }
+        
+        replyText = analysis;
+      }
+    }
 
     return {
-      reply: response.text,
-      retrievedJobsCount: dynamicJobs.length, // Trả về số lượng bản ghi đã truy vấn để chứng minh với hội đồng
+      reply: replyText,
+      retrievedJobsCount: dynamicJobs.length,
     };
   }
+}
+
+function formatTopikDisplay(level: string): string {
+  if (!level) return 'Không yêu cầu';
+  if (level.startsWith('TOPIK_II_LEVEL_')) {
+    return `TOPIK II - Cấp ${level.replace('TOPIK_II_LEVEL_', '')}`;
+  }
+  if (level.startsWith('TOPIK_I_LEVEL_')) {
+    return `TOPIK I - Cấp ${level.replace('TOPIK_I_LEVEL_', '')}`;
+  }
+  return level;
 }
 
 function cosineSimilarity(vecA: number[], vecB: number[]): number {

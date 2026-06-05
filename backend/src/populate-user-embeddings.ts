@@ -12,7 +12,7 @@ async function run() {
 
   const candidates = await prisma.jobUser.findMany({
     where: {
-      role: 'candidate',
+      user: { role: 'candidate' },
       OR: [
         { skillsVector: null },
         { skillsVector: '' }
