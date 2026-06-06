@@ -24,20 +24,20 @@ async function run() {
   console.log('Vector length:', vector.length);
 
   const count = await prisma.jobPosting.count();
-  console.log("Job posting count:", count);
-  
+  console.log('Job posting count:', count);
+
   const allJobs = await prisma.jobPosting.findMany({ take: 1 });
   const sampleJob = allJobs[0];
-  console.log("Sample job title:", sampleJob.title);
-  console.log("Sample job jdEmbedding exists:", !!sampleJob.jdEmbedding);
+  console.log('Sample job title:', sampleJob.title);
+  console.log('Sample job jdEmbedding exists:', !!sampleJob.jdEmbedding);
   if (sampleJob.jdEmbedding) {
     try {
       const jobVector = JSON.parse(sampleJob.jdEmbedding) as number[];
-      console.log("Parsed vector length:", jobVector.length);
+      console.log('Parsed vector length:', jobVector.length);
       const score = cosineSimilarity(vector, jobVector);
-      console.log("Computed cosine similarity score:", score);
+      console.log('Computed cosine similarity score:', score);
     } catch (err) {
-      console.error("Error parsing/computing similarity:", err);
+      console.error('Error parsing/computing similarity:', err);
     }
   }
   await prisma.onModuleDestroy();

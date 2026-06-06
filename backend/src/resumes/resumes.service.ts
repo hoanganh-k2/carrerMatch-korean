@@ -53,7 +53,8 @@ export class ResumesService {
         certifications: { orderBy: { issuedAt: 'desc' } },
       },
     });
-    if (!resume) throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
+    if (!resume)
+      throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
 
     // Ứng viên chỉ xem CV của mình, recruiter và admin xem được tất cả
     if (resume.userId !== requestUserId && userRole === 'candidate') {
@@ -64,8 +65,10 @@ export class ResumesService {
 
   async update(resumeId: string, userId: string, dto: UpdateResumeDto) {
     const resume = await this.prisma.resume.findUnique({ where: { resumeId } });
-    if (!resume) throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
-    if (resume.userId !== userId) throw new ForbiddenException('Bạn không có quyền sửa CV này');
+    if (!resume)
+      throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
+    if (resume.userId !== userId)
+      throw new ForbiddenException('Bạn không có quyền sửa CV này');
 
     if (dto.isDefault) {
       await this.prisma.resume.updateMany({
@@ -83,14 +86,20 @@ export class ResumesService {
 
   async remove(resumeId: string, userId: string) {
     const resume = await this.prisma.resume.findUnique({ where: { resumeId } });
-    if (!resume) throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
-    if (resume.userId !== userId) throw new ForbiddenException('Bạn không có quyền xóa CV này');
+    if (!resume)
+      throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
+    if (resume.userId !== userId)
+      throw new ForbiddenException('Bạn không có quyền xóa CV này');
     return this.prisma.resume.delete({ where: { resumeId } });
   }
 
   // ========== WORK EXPERIENCE ==========
 
-  async addExperience(resumeId: string, userId: string, dto: CreateWorkExperienceDto) {
+  async addExperience(
+    resumeId: string,
+    userId: string,
+    dto: CreateWorkExperienceDto,
+  ) {
     await this.checkResumeOwnership(resumeId, userId);
     return this.prisma.workExperience.create({
       data: {
@@ -108,13 +117,18 @@ export class ResumesService {
       include: { resume: true },
     });
     if (!exp) throw new NotFoundException('Kinh nghiệm không tồn tại');
-    if (exp.resume.userId !== userId) throw new ForbiddenException('Không có quyền');
+    if (exp.resume.userId !== userId)
+      throw new ForbiddenException('Không có quyền');
     return this.prisma.workExperience.delete({ where: { id } });
   }
 
   // ========== EDUCATION ==========
 
-  async addEducation(resumeId: string, userId: string, dto: CreateEducationDto) {
+  async addEducation(
+    resumeId: string,
+    userId: string,
+    dto: CreateEducationDto,
+  ) {
     await this.checkResumeOwnership(resumeId, userId);
     return this.prisma.education.create({ data: { resumeId, ...dto } });
   }
@@ -125,13 +139,18 @@ export class ResumesService {
       include: { resume: true },
     });
     if (!edu) throw new NotFoundException('Học vấn không tồn tại');
-    if (edu.resume.userId !== userId) throw new ForbiddenException('Không có quyền');
+    if (edu.resume.userId !== userId)
+      throw new ForbiddenException('Không có quyền');
     return this.prisma.education.delete({ where: { id } });
   }
 
   // ========== CERTIFICATION ==========
 
-  async addCertification(resumeId: string, userId: string, dto: CreateCertificationDto) {
+  async addCertification(
+    resumeId: string,
+    userId: string,
+    dto: CreateCertificationDto,
+  ) {
     await this.checkResumeOwnership(resumeId, userId);
     return this.prisma.certification.create({
       data: {
@@ -149,7 +168,8 @@ export class ResumesService {
       include: { resume: true },
     });
     if (!cert) throw new NotFoundException('Chứng chỉ không tồn tại');
-    if (cert.resume.userId !== userId) throw new ForbiddenException('Không có quyền');
+    if (cert.resume.userId !== userId)
+      throw new ForbiddenException('Không có quyền');
     return this.prisma.certification.delete({ where: { id } });
   }
 
@@ -157,8 +177,10 @@ export class ResumesService {
 
   private async checkResumeOwnership(resumeId: string, userId: string) {
     const resume = await this.prisma.resume.findUnique({ where: { resumeId } });
-    if (!resume) throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
-    if (resume.userId !== userId) throw new ForbiddenException('Bạn không sở hữu CV này');
+    if (!resume)
+      throw new NotFoundException(`Resume "${resumeId}" không tồn tại`);
+    if (resume.userId !== userId)
+      throw new ForbiddenException('Bạn không sở hữu CV này');
     return resume;
   }
 }

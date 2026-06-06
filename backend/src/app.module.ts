@@ -13,17 +13,28 @@ import { ResumesModule } from './resumes/resumes.module';
 import { JobUsersModule } from './job-users/job-users.module';
 import { JobPostingsModule } from './job-postings/job-postings.module';
 import { JobApplicationsModule } from './job-applications/job-applications.module';
+import { SavedJobsModule } from './saved-jobs/saved-jobs.module';
 
-// Support
+// Support & Analytics
 import { SkillTaxonomyModule } from './skill-taxonomy/skill-taxonomy.module';
 import { CareerEventsModule } from './career-events/career-events.module';
 import { RolesPermissionsModule } from './roles-permissions/roles-permissions.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { AiModule } from './ai/ai.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { SearchModule } from './search/search.module';
+import { InterviewsModule } from './interviews/interviews.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { MailModule } from './mail/mail.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     PrismaModule,
     AiModule,
+    ScheduleModule.forRoot(),
     // Auth
     AuthModule,
     UsersModule,
@@ -33,10 +44,19 @@ import { AiModule } from './ai/ai.module';
     JobUsersModule,
     JobPostingsModule,
     JobApplicationsModule,
-    // Support
+    SavedJobsModule,
+    // Support & Analytics
     SkillTaxonomyModule,
     CareerEventsModule,
     RolesPermissionsModule,
+    NotificationsModule,
+    DashboardModule,
+    UploadsModule,
+    SearchModule,
+    InterviewsModule,
+    ReviewsModule,
+    MailModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

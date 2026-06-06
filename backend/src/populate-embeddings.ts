@@ -12,11 +12,8 @@ async function run() {
 
   const jobs = await prisma.jobPosting.findMany({
     where: {
-      OR: [
-        { jdEmbedding: null },
-        { jdEmbedding: '' }
-      ]
-    }
+      OR: [{ jdEmbedding: null }, { jdEmbedding: '' }],
+    },
   });
 
   console.log(`- Found ${jobs.length} jobs without embeddings.`);
@@ -29,7 +26,7 @@ async function run() {
 
     await prisma.jobPosting.update({
       where: { jobId: job.jobId },
-      data: { jdEmbedding: vectorString }
+      data: { jdEmbedding: vectorString },
     });
 
     if ((i + 1) % 50 === 0 || i === jobs.length - 1) {

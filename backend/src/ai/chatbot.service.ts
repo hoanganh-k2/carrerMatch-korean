@@ -126,28 +126,40 @@ export class ChatbotService {
         });
         replyText = response15.text || '';
       } catch (error15) {
-        console.error('All Gemini models failed. Activating programmatic fallback.', error15);
-        
+        console.error(
+          'All Gemini models failed. Activating programmatic fallback.',
+          error15,
+        );
+
         const candidateName = userProfile?.fullName || 'ứng viên';
-        const topik = userProfile?.topikLevel ? formatTopikDisplay(userProfile.topikLevel) : 'chưa cập nhật';
+        const topik = userProfile?.topikLevel
+          ? formatTopikDisplay(userProfile.topikLevel)
+          : 'chưa cập nhật';
         const userSkills = userProfile?.skillsExtracted || [];
-        
+
         let analysis = `Chào bạn ${candidateName}! Rất tiếc, máy chủ AI chính hiện đang bận do lượng truy cập cao từ phía nhà cung cấp, nhưng tôi đã phân tích nhanh hồ sơ của bạn đối chiếu với cơ sở dữ liệu việc làm thực tế:\n\n`;
         analysis += `**1. Đánh giá hồ sơ của bạn:**\n`;
         analysis += `* Trình độ tiếng Hàn: **${topik}**\n`;
         analysis += `* Kỹ năng chuyên môn hiện có: **${userSkills.join(', ') || 'Chưa cập nhật'}**\n\n`;
-        
+
         if (dynamicJobs.length > 0) {
           analysis += `**2. Đề xuất việc làm phù hợp nhất từ hệ thống:**\n`;
           dynamicJobs.forEach((job, idx) => {
-            const jobTopik = formatTopikDisplay(job.min_topik_required || job.minTopikRequired);
+            const jobTopik = formatTopikDisplay(
+              job.min_topik_required || job.minTopikRequired,
+            );
             const jobSkills = job.required_skills || job.requiredSkills || [];
             analysis += `* **Việc làm ${idx + 1}:** ${job.title} (${job.location})\n`;
             analysis += `  * Yêu cầu tiếng Hàn: **${jobTopik}**\n`;
             analysis += `  * Yêu cầu công nghệ: **${jobSkills.join(', ')}**\n`;
-            
+
             // Check missing skills
-            const missing = jobSkills.filter((s: string) => !userSkills.some((us: string) => us.toLowerCase() === s.toLowerCase()));
+            const missing = jobSkills.filter(
+              (s: string) =>
+                !userSkills.some(
+                  (us: string) => us.toLowerCase() === s.toLowerCase(),
+                ),
+            );
             if (missing.length > 0) {
               analysis += `  * Kỹ năng bạn cần bổ sung: **${missing.join(', ')}**\n`;
             } else {
@@ -160,7 +172,7 @@ export class ChatbotService {
         } else {
           analysis += `Hiện tại chưa có công việc hoạt động nào trong hệ thống trùng khớp với yêu cầu của bạn. Bạn vui lòng quay lại sau nhé!\n`;
         }
-        
+
         replyText = analysis;
       }
     }

@@ -4,7 +4,9 @@ import { PrismaService } from './prisma/prisma.service';
 import { EmbeddingService } from './ai/embedding.service';
 
 async function run() {
-  console.log('🌱 Starting to populate vector embeddings for candidates (job_users)...');
+  console.log(
+    '🌱 Starting to populate vector embeddings for candidates (job_users)...',
+  );
   const embeddingService = new EmbeddingService();
   await embeddingService.onModuleInit();
   const prisma = new PrismaService();
@@ -13,11 +15,8 @@ async function run() {
   const candidates = await prisma.jobUser.findMany({
     where: {
       user: { role: 'candidate' },
-      OR: [
-        { skillsVector: null },
-        { skillsVector: '' }
-      ]
-    }
+      OR: [{ skillsVector: null }, { skillsVector: '' }],
+    },
   });
 
   console.log(`- Found ${candidates.length} candidates without embeddings.`);
@@ -30,11 +29,13 @@ async function run() {
 
     await prisma.jobUser.update({
       where: { userId: candidate.userId },
-      data: { skillsVector: vectorString }
+      data: { skillsVector: vectorString },
     });
 
     if ((i + 1) % 50 === 0 || i === candidates.length - 1) {
-      console.log(`- Progress: ${i + 1}/${candidates.length} candidates updated.`);
+      console.log(
+        `- Progress: ${i + 1}/${candidates.length} candidates updated.`,
+      );
     }
   }
 

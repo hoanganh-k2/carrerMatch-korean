@@ -17,7 +17,9 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class RolesPermissionsController {
-  constructor(private readonly rolesPermissionsService: RolesPermissionsService) {}
+  constructor(
+    private readonly rolesPermissionsService: RolesPermissionsService,
+  ) {}
 
   // ========== PERMISSIONS ==========
 
@@ -61,6 +63,9 @@ export class RolesPermissionsController {
     @Param('userId') userId: string,
     @Param('permId') permId: string,
   ) {
-    return this.rolesPermissionsService.revokePermissionFromUser(userId, permId);
+    return this.rolesPermissionsService.revokePermissionFromUser(
+      userId,
+      permId,
+    );
   }
 }

@@ -10,9 +10,9 @@ async function bootstrap() {
   // Bật validation pipe toàn cục cho tất cả DTOs
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,       // Bỏ các field không có trong DTO
+      whitelist: true, // Bỏ các field không có trong DTO
       forbidNonWhitelisted: false,
-      transform: true,       // Tự động transform types
+      transform: true, // Tự động transform types
     }),
   );
 
@@ -25,7 +25,9 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`🚀 CareerMatch Korean Backend đang chạy tại http://localhost:${port}`);
+  console.log(
+    `🚀 CareerMatch Korean Backend đang chạy tại http://localhost:${port}`,
+  );
   console.log(`📋 Các API endpoint chính:`);
   console.log(`   POST /auth/register - Đăng ký tài khoản`);
   console.log(`   POST /auth/login    - Đăng nhập`);

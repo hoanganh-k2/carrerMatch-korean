@@ -42,10 +42,7 @@ export class ResumesController {
 
   // Xem một CV cụ thể
   @Get(':id')
-  findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.resumesService.findOne(id, user.userId, user.role);
   }
 
@@ -61,10 +58,7 @@ export class ResumesController {
 
   // Xóa CV
   @Delete(':id')
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.resumesService.remove(id, user.userId);
   }
 

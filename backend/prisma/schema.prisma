@@ -72,6 +72,10 @@ model User {
   jobUser      JobUser?
   company      Company?
   userPermissions UserPermission[]
+  notifications   Notification[]
+  savedJobs       SavedJob[]
+  companyReviews  CompanyReview[]
+  subscriptions   Subscription[]
 
   @@map("users")
 }
@@ -125,6 +129,7 @@ model Company {
   // Relations
   user         User         @relation(fields: [userId], references: [id])
   jobPostings  JobPosting[]
+  reviews      CompanyReview[]
 
   @@map("companies")
 }
@@ -215,11 +220,13 @@ model JobPosting {
   status              JobStatus        @default(active)
   viewsCount          Int              @default(0) @map("views_count")
   applyCount          Int              @default(0) @map("apply_count")
+  createdAt           DateTime         @default(now()) @map("created_at")
 
   // Relations
   company             Company?         @relation(fields: [companyId], references: [companyId])
   applications        JobApplication[]
   events              CareerEvent[]
+  savedByUsers        SavedJob[]
 
   @@map("job_postings")
 }
@@ -241,6 +248,7 @@ model JobApplication {
 
   job                JobPosting        @relation(fields: [jobId], references: [jobId])
   candidate          JobUser           @relation(fields: [candidateId], references: [userId])
+  interviews         Interview[]
 
   @@map("job_applications")
 }
@@ -306,4 +314,106 @@ model UserPermission {
 
   @@id([userId, permissionId])
   @@map("user_permissions")
+}
+
+// ==================== 9. NOTIFICATIONS - Thông báo ====================
+
+enum NotificationType {
+  application_status   // Trạng thái đơn ứng tuyển thay đổi
+  new_application      // Có đơn ứng tuyển mới (cho recruiter)
+  new_job_match        // Có tin tuyển dụng phù hợp (cho candidate)
+  job_expiring         // Tin tuyển dụng sắp hết hạn
+  system               // Thông báo hệ thống
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String           @map("user_id")
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean          @default(false) @map("is_read")
+  relatedId   String?          @map("related_id") // jobId hoặc applicationId
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  user        User             @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// ==================== 10. SAVED JOBS - Tin tuyển dụng đã lưu ====================
+
+model SavedJob {
+  id        String     @id @default(uuid())
+  userId    String     @map("user_id")
+  jobId     String     @map("job_id")
+  savedAt   DateTime   @default(now()) @map("saved_at")
+
+  user      User       @relation(fields: [userId], references: [id])
+  job       JobPosting @relation(fields: [jobId], references: [jobId])
+
+  @@unique([userId, jobId]) // Mỗi user chỉ lưu một tin một lần
+  @@map("saved_jobs")
+}
+
+// ==================== 11. INTERVIEWS - Lịch phỏng vấn ====================
+
+enum InterviewStatus {
+  scheduled
+  completed
+  cancelled
+  rescheduled
+}
+
+model Interview {
+  id             String          @id @default(uuid())
+  applicationId  String          @map("application_id")
+  title          String          // Ví dụ: "Phỏng vấn vòng kỹ thuật"
+  description    String?         @db.Text
+  scheduledAt    DateTime        @map("scheduled_at")
+  durationMinutes Int            @default(45) @map("duration_minutes")
+  meetingLink    String?         @map("meeting_link") // Zoom, Google Meet...
+  status         InterviewStatus @default(scheduled)
+  notes          String?         @db.Text // Ghi chú từ recruiter
+  feedback       String?         @db.Text // Phản hồi từ candidate
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  application    JobApplication  @relation(fields: [applicationId], references: [applicationId])
+
+  @@map("interviews")
+}
+
+// ==================== 12. REVIEWS - Đánh giá công ty ====================
+
+model CompanyReview {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  candidateId  String   @map("candidate_id")
+  rating       Int      // Chấm điểm 1-5 sao
+  reviewText   String   @db.Text @map("review_text")
+  isAnonymous  Boolean  @default(false) @map("is_anonymous")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  company      Company  @relation(fields: [companyId], references: [companyId])
+  candidate    User     @relation(fields: [candidateId], references: [id])
+
+  @@unique([companyId, candidateId]) // Mỗi ứng viên chỉ được đánh giá một công ty 1 lần
+  @@map("company_reviews")
+}
+
+// ==================== 13. SUBSCRIPTIONS - Đăng ký nhận tin ====================
+
+model Subscription {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  skills      String[] // Kỹ năng đăng ký nhận tin (ví dụ: ["React", "Korean"])
+  locations   String[] // Địa điểm mong muốn (ví dụ: ["Seoul", "Hồ Chí Minh"])
+  topikLevel  TopikLevel @default(NONE) @map("topik_level") // Trình độ tiếng Hàn tối thiểu
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("subscriptions")
 }

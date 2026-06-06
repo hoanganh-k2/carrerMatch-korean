@@ -13,9 +13,13 @@ export class CompaniesService {
 
   async create(userId: string, dto: CreateCompanyDto) {
     // Mỗi recruiter chỉ có một công ty
-    const existing = await this.prisma.company.findUnique({ where: { userId } });
+    const existing = await this.prisma.company.findUnique({
+      where: { userId },
+    });
     if (existing) {
-      throw new ConflictException('Bạn đã có hồ sơ công ty. Hãy cập nhật thay vì tạo mới.');
+      throw new ConflictException(
+        'Bạn đã có hồ sơ công ty. Hãy cập nhật thay vì tạo mới.',
+      );
     }
     return this.prisma.company.create({
       data: { userId, ...dto },
@@ -44,7 +48,10 @@ export class CompaniesService {
         _count: { select: { jobPostings: true } },
       },
     });
-    if (!company) throw new NotFoundException(`Công ty với ID "${companyId}" không tồn tại`);
+    if (!company)
+      throw new NotFoundException(
+        `Công ty với ID "${companyId}" không tồn tại`,
+      );
     return company;
   }
 
@@ -57,9 +64,17 @@ export class CompaniesService {
     });
   }
 
-  async update(companyId: string, userId: string, userRole: string, dto: UpdateCompanyDto) {
-    const company = await this.prisma.company.findUnique({ where: { companyId } });
-    if (!company) throw new NotFoundException(`Công ty "${companyId}" không tồn tại`);
+  async update(
+    companyId: string,
+    userId: string,
+    userRole: string,
+    dto: UpdateCompanyDto,
+  ) {
+    const company = await this.prisma.company.findUnique({
+      where: { companyId },
+    });
+    if (!company)
+      throw new NotFoundException(`Công ty "${companyId}" không tồn tại`);
 
     // Chỉ chủ sở hữu hoặc admin mới được sửa
     if (company.userId !== userId && userRole !== 'admin') {
