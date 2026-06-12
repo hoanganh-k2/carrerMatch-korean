@@ -6,9 +6,10 @@ import { Job } from '@/lib/api';
 
 interface JobCardProps {
   job: Job;
+  onClick?: () => void;
 }
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, onClick }: JobCardProps) {
   const hasScore = typeof job.similarityScore === 'number';
   const scorePct = hasScore ? Math.round(job.similarityScore! * 100) : 0;
 
@@ -35,10 +36,11 @@ export function JobCard({ job }: JobCardProps) {
 
   return (
     <Card 
-      className={`group bg-zinc-900 border transition-all duration-300 flex flex-col justify-between h-full hover:-translate-y-1 hover:shadow-2xl ${
+      onClick={onClick}
+      className={`group bg-zinc-900 border transition-all duration-300 flex flex-col justify-between h-full hover:-translate-y-1 hover:shadow-2xl cursor-pointer ${
         hasScore 
           ? 'border-indigo-500/25 shadow-lg shadow-indigo-500/5 hover:border-indigo-500/40' 
-          : 'border-zinc-850 hover:border-zinc-700'
+          : 'border-zinc-800 hover:border-zinc-700'
       }`}
     >
       <CardHeader className="relative pb-2">

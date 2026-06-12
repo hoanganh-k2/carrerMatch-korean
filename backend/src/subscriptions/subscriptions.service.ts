@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { TopikLevel } from '@prisma/client';
+import { meetsTopikRequirement } from '../shared/topik.utils';
 
 export class CreateSubscriptionDto {
   skills: string[];
@@ -23,15 +24,6 @@ interface MatchedJob {
   requiredSkills: string[];
 }
 
-const topikOrder: Record<string, number> = {
-  NONE: 0,
-  TOPIK_I_LEVEL_1: 1,
-  TOPIK_I_LEVEL_2: 2,
-  TOPIK_II_LEVEL_3: 3,
-  TOPIK_II_LEVEL_4: 4,
-  TOPIK_II_LEVEL_5: 5,
-  TOPIK_II_LEVEL_6: 6,
-};
 
 @Injectable()
 export class SubscriptionsService {
@@ -160,10 +152,8 @@ export class SubscriptionsService {
           if (!locationMatch) continue;
         }
 
-        // C. Kiểm tra cấp độ Topik tối thiểu
-        const subTopikOrder = topikOrder[sub.topikLevel] || 0;
-        const jobTopikOrder = topikOrder[job.minTopikRequired] || 0;
-        if (jobTopikOrder > subTopikOrder) continue;
+        // C. Ứng viên phải đủ TOPIK để apply job này
+        if (!meetsTopikRequirement(sub.topikLevel, job.minTopikRequired)) continue;
 
         matchedJobs.push({
           title: job.title,

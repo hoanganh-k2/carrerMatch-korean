@@ -31,6 +31,14 @@ export class JobPostingsController {
     return this.jobPostingsService.searchSemantic(queryEmbedding);
   }
 
+  // Candidate: Việc làm gợi ý dành riêng cho tôi (kèm giải thích lý do)
+  @Get('recommendations/me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('candidate')
+  recommendForMe(@CurrentUser() user: CurrentUserPayload) {
+    return this.jobPostingsService.recommendJobsForCandidate(user.userId);
+  }
+
   // Recruiter/Admin: Xem ứng viên phù hợp cho tin tuyển dụng
   @Get(':jobId/match-candidates')
   @UseGuards(JwtAuthGuard, RolesGuard)

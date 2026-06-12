@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmbeddingService } from '../ai/embedding.service';
 import { ApplyJobDto, UpdateApplicationStatusDto } from './dto/application.dto';
 import { ApplicationStatus } from '@prisma/client';
+import { getTopikOrder, meetsTopikRequirement } from '../shared/topik.utils';
 
 @Injectable()
 export class JobApplicationsService {
@@ -58,23 +59,18 @@ export class JobApplicationsService {
       }
 
       // Tính điểm TOPIK
-      const topikOrder = [
-        'NONE',
-        'TOPIK_I_LEVEL_1',
-        'TOPIK_I_LEVEL_2',
-        'TOPIK_II_LEVEL_3',
-        'TOPIK_II_LEVEL_4',
-        'TOPIK_II_LEVEL_5',
-        'TOPIK_II_LEVEL_6',
-      ];
-      const candidateTopik = topikOrder.indexOf(candidate.topikLevel);
-      const requiredTopik = topikOrder.indexOf(job.minTopikRequired);
+      const candidateTopik = getTopikOrder(candidate.topikLevel);
+      const requiredTopik = getTopikOrder(job.minTopikRequired);
       matchBreakdown.korean_skill =
         requiredTopik <= 0
           ? 1.0
           : Math.min(candidateTopik / requiredTopik, 1.0);
       matchBreakdown.korean_skill =
         Math.round(matchBreakdown.korean_skill * 100) / 100;
+      // Bonus: đạt đúng yêu cầu thì điểm tối đa
+      if (meetsTopikRequirement(candidate.topikLevel, job.minTopikRequired)) {
+        matchBreakdown.korean_skill = Math.max(matchBreakdown.korean_skill, 1.0);
+      }
 
       // Tính điểm kinh nghiệm
       const expMin = job.experienceYearsMin || 0;

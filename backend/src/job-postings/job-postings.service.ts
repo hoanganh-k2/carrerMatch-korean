@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmbeddingService } from 'src/ai/embedding.service';
 import { Prisma, JobPosting } from '@prisma/client';
+import { meetsTopikRequirement } from '../shared/topik.utils';
 
 @Injectable()
 export class JobPostingsService {
@@ -168,12 +169,13 @@ export class JobPostingsService {
     try {
       // 2. Quét và tính toán độ tương đồng với skills_vector của các ứng viên (JobUser)
       const matchedCandidates = await this.prisma.$queryRaw`
-        SELECT 
-          user_id, full_name, topik_level, years_experience, skills_extracted,
-          (1 - (skills_vector <=> (SELECT jd_embedding FROM job_postings WHERE job_id = ${jobId})::vector)) AS semantic_score
-        FROM job_users
-        WHERE role = 'candidate' AND open_to_work = true
-        ORDER BY skills_vector <=> (SELECT jd_embedding FROM job_postings WHERE job_id = ${jobId})::vector ASC
+        SELECT
+          ju.user_id, ju.full_name, ju.topik_level, ju.years_experience, ju.skills_extracted,
+          (1 - (ju.skills_vector::vector <=> (SELECT jd_embedding FROM job_postings WHERE job_id = ${jobId})::vector)) AS semantic_score
+        FROM job_users ju
+        JOIN users u ON u.id = ju.user_id
+        WHERE u.role = 'candidate' AND ju.open_to_work = true AND ju.skills_vector IS NOT NULL
+        ORDER BY ju.skills_vector::vector <=> (SELECT jd_embedding FROM job_postings WHERE job_id = ${jobId})::vector ASC
         LIMIT ${limit};
       `;
 
@@ -274,6 +276,107 @@ export class JobPostingsService {
       }
       throw err;
     }
+  }
+
+  // F3 (chiều ứng viên) - Gợi ý việc làm phù hợp cho candidate, có giải thích lý do
+  async recommendJobsForCandidate(candidateId: string, limit = 10) {
+    const candidate = await this.prisma.jobUser.findUnique({
+      where: { userId: candidateId },
+    });
+    if (!candidate) {
+      throw new NotFoundException('Không tìm thấy hồ sơ ứng viên');
+    }
+
+    // Vector của ứng viên: ưu tiên skillsVector đã lưu, chưa có thì sinh mới từ hồ sơ
+    let candidateVector: number[] = [];
+    if (candidate.skillsVector) {
+      try {
+        candidateVector = JSON.parse(candidate.skillsVector) as number[];
+      } catch {
+        const cleaned = candidate.skillsVector
+          .replace('[', '')
+          .replace(']', '');
+        candidateVector = cleaned.split(',').map(Number);
+      }
+    }
+    if (candidateVector.length === 0) {
+      const profileText = `Kỹ năng: ${candidate.skillsExtracted.join(', ')}. Trình độ tiếng Hàn: ${candidate.topikLevel}. Kinh nghiệm: ${candidate.yearsExperience ?? 0} năm.`;
+      candidateVector =
+        await this.embeddingService.generateEmbedding(profileText);
+    }
+
+    const jobs = await this.prisma.jobPosting.findMany({
+      where: { status: 'active' },
+      include: {
+        company: { select: { companyName: true, logoUrl: true } },
+      },
+    });
+
+    const candidateSkills = candidate.skillsExtracted.map((s) =>
+      s.toLowerCase(),
+    );
+
+    const scoredJobs = jobs.map((job) => {
+      let semanticScore = 0.0;
+      if (job.jdEmbedding) {
+        try {
+          let jobVector: number[] = [];
+          try {
+            jobVector = JSON.parse(job.jdEmbedding) as number[];
+          } catch {
+            const cleaned = job.jdEmbedding.replace('[', '').replace(']', '');
+            jobVector = cleaned.split(',').map(Number);
+          }
+          semanticScore = cosineSimilarity(candidateVector, jobVector);
+        } catch {
+          // ignore
+        }
+      }
+
+      const requiredSkills = job.requiredSkills || [];
+      const matchedSkills = requiredSkills.filter((s) =>
+        candidateSkills.includes(s.toLowerCase()),
+      );
+      const missingSkills = requiredSkills.filter(
+        (s) => !candidateSkills.includes(s.toLowerCase()),
+      );
+      const skillRatio =
+        requiredSkills.length > 0
+          ? matchedSkills.length / requiredSkills.length
+          : 1.0;
+      const topikOk = meetsTopikRequirement(
+        candidate.topikLevel,
+        job.minTopikRequired,
+      );
+
+      // Tổng hợp: ngữ nghĩa 50%, kỹ năng khớp 30%, TOPIK 20%
+      const finalScore =
+        semanticScore * 0.5 + skillRatio * 0.3 + (topikOk ? 0.2 : 0);
+
+      return {
+        jobId: job.jobId,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        salaryMin: job.salaryMin,
+        salaryMax: job.salaryMax,
+        jobType: job.jobType,
+        minTopikRequired: job.minTopikRequired,
+        recommendScore: Math.round(finalScore * 100) / 100,
+        breakdown: {
+          semanticMatch: Math.round(semanticScore * 100) + '%',
+          skillMatch: `${matchedSkills.length}/${requiredSkills.length} kỹ năng (${matchedSkills.join(', ') || 'chưa khớp'})`,
+          missingSkills,
+          koreanLevelMatch: topikOk
+            ? `Đạt yêu cầu (cần ${job.minTopikRequired}, bạn có ${candidate.topikLevel})`
+            : `Chưa đạt (cần ${job.minTopikRequired}, bạn có ${candidate.topikLevel})`,
+          explanation: `Gợi ý vì hồ sơ của bạn tương đồng ngữ nghĩa ${Math.round(semanticScore * 100)}% với JD, khớp ${matchedSkills.length}/${requiredSkills.length} kỹ năng bắt buộc${missingSkills.length > 0 ? `, cần bổ sung: ${missingSkills.join(', ')}` : ''}.`,
+        },
+      };
+    });
+
+    scoredJobs.sort((a, b) => b.recommendScore - a.recommendScore);
+    return scoredJobs.slice(0, limit);
   }
 }
 

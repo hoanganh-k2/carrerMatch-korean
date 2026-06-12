@@ -47,10 +47,12 @@ export class AuthService {
         },
       });
     } else if (role === 'recruiter') {
-      await this.prisma.company.create({
+      // Recruiter cần tạo Company riêng qua POST /companies sau khi đăng ký
+      // Tạo JobUser profile cơ bản để lưu tên
+      await this.prisma.jobUser.create({
         data: {
           userId: user.id,
-          companyName: dto.fullName, // Tên công ty tạm thời
+          fullName: dto.fullName,
         },
       });
     }

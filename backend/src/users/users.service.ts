@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto, UpdateJobUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -48,6 +48,28 @@ export class UsersService {
       data: dto,
       select: { id: true, email: true, role: true, isActive: true },
     });
+  }
+
+  async updateProfile(id: string, dto: UpdateJobUserDto) {
+    await this.findOne(id);
+    const updated = await this.prisma.jobUser.update({
+      where: { userId: id },
+      data: {
+        fullName: dto.fullName,
+        topikLevel: dto.topikLevel,
+        koreanScore: dto.koreanScore,
+        isBrSE: dto.isBrSE,
+        yearsExperience: dto.yearsExperience,
+        desiredSalaryMin: dto.desiredSalaryMin,
+        desiredSalaryMax: dto.desiredSalaryMax,
+        jobTypePrefs: dto.jobTypePrefs,
+        openToWork: dto.openToWork,
+        targetKoreanRole: dto.targetKoreanRole,
+        brseExperienceYears: dto.brseExperienceYears,
+        koreanWorkExperienceYears: dto.koreanWorkExperienceYears,
+      },
+    });
+    return updated;
   }
 
   async deactivate(id: string) {

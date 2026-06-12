@@ -101,6 +101,11 @@ model JobUser {
   openToWork        Boolean           @default(true) @map("open_to_work")
   profileCompleteness Float           @default(0.0) @map("profile_completeness")
 
+  // Korean-specific fields
+  targetKoreanRole        String?  @map("target_korean_role")       // "BRSE", "COMTOR", "SE", "QA", "PM"
+  brseExperienceYears     Float?   @map("brse_experience_years")
+  koreanWorkExperienceYears Float? @map("korean_work_experience_years")
+
   // Relations
   user              User              @relation(fields: [userId], references: [id])
   applications      JobApplication[]
@@ -123,6 +128,11 @@ model Company {
   description  String?  @db.Text
   location     String?
   isVerified   Boolean  @default(false) @map("is_verified")
+
+  // Korean-specific fields
+  businessRegistrationNumber String? @map("business_registration_number") // 사업자등록번호
+  koreanCompanyName          String? @map("korean_company_name")
+  companyCountry             String  @default("South Korea") @map("company_country")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -218,6 +228,12 @@ model JobPosting {
   location            String
   applicationDeadline DateTime         @map("application_deadline")
   status              JobStatus        @default(active)
+
+  // Korean-specific fields
+  targetRole            String?  @map("target_role")            // "BRSE", "COMTOR", "SE"
+  isRemoteFromVietnam   Boolean  @default(false) @map("is_remote_from_vietnam")
+  sponsorshipOffered    Boolean  @default(false) @map("sponsorship_offered")
+  interviewLanguage     String?  @map("interview_language")     // "Korean", "English", "Mixed"
   viewsCount          Int              @default(0) @map("views_count")
   applyCount          Int              @default(0) @map("apply_count")
   createdAt           DateTime         @default(now()) @map("created_at")
@@ -376,6 +392,8 @@ model Interview {
   status         InterviewStatus @default(scheduled)
   notes          String?         @db.Text // Ghi chú từ recruiter
   feedback       String?         @db.Text // Phản hồi từ candidate
+  interviewLanguage String?      @map("interview_language")     // "Korean", "English", "Mixed"
+  interpreterNeeded Boolean      @default(false) @map("interpreter_needed")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 

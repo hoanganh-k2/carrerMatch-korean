@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmbeddingService } from '../ai/embedding.service';
 import { Prisma, TopikLevel, JobType } from '@prisma/client';
+import { getLevelsUpTo } from '../shared/topik.utils';
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
@@ -66,7 +67,8 @@ export class SearchService {
     }
 
     if (topikLevel && topikLevel !== 'NONE') {
-      where.minTopikRequired = topikLevel;
+      // Lấy tất cả job có yêu cầu TOPIK <= trình độ của ứng viên
+      where.minTopikRequired = { in: getLevelsUpTo(topikLevel) };
     }
 
     if (jobType) {

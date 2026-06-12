@@ -1,4 +1,5 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsInt, Min, Max } from 'class-validator';
+import { ApplicationStatus } from '@prisma/client';
 
 export class ApplyJobDto {
   @IsString()
@@ -14,13 +15,16 @@ export class ApplyJobDto {
 }
 
 export class UpdateApplicationStatusDto {
-  @IsString()
-  status: string; // 'screening' | 'interview' | 'offer' | 'rejected' | 'accepted'
+  @IsEnum(ApplicationStatus)
+  status: ApplicationStatus;
 
   @IsString()
   @IsOptional()
   recruiterNote?: string;
 
+  @IsInt()
+  @Min(1)
+  @Max(5)
   @IsOptional()
   recruiterRating?: number;
 }

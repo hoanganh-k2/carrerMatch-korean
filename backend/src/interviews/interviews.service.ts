@@ -57,6 +57,9 @@ export class InterviewsService {
     if (isNaN(scheduledDate.getTime())) {
       throw new BadRequestException('Thời gian phỏng vấn không hợp lệ');
     }
+    if (scheduledDate <= new Date()) {
+      throw new BadRequestException('Thời gian phỏng vấn phải là trong tương lai');
+    }
 
     // Tạo cuộc phỏng vấn
     const interview = await this.prisma.interview.create({

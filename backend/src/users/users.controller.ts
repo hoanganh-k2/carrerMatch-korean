@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto, UpdateJobUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -42,13 +42,22 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  // Cập nhật thông tin của mình
+  // Cập nhật thông tin cơ bản (email) của mình
   @Patch('me')
   updateMe(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: UpdateUserDto,
   ) {
     return this.usersService.update(user.userId, dto);
+  }
+
+  // Cập nhật profile chi tiết (TOPIK, skills, experience, v.v.)
+  @Patch('me/profile')
+  updateMyProfile(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateJobUserDto,
+  ) {
+    return this.usersService.updateProfile(user.userId, dto);
   }
 
   // Admin: deactivate user
