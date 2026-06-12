@@ -13,7 +13,7 @@ import {
 
 const NAV_BY_ROLE: Record<string, Array<{ to: string; label: string }>> = {
   candidate: [
-    { to: '/', label: 'Tìm việc' },
+    { to: '/jobs', label: 'Tìm việc' },
     { to: '/candidate/recommendations', label: 'Dành cho bạn' },
     { to: '/candidate', label: 'Dashboard' },
     { to: '/candidate/resumes', label: 'CV của tôi' },
@@ -21,16 +21,22 @@ const NAV_BY_ROLE: Record<string, Array<{ to: string; label: string }>> = {
     { to: '/candidate/profile', label: 'Hồ sơ' },
   ],
   recruiter: [
-    { to: '/', label: 'Việc làm' },
+    { to: '/jobs', label: 'Việc làm' },
     { to: '/recruiter', label: 'Dashboard' },
     { to: '/recruiter/jobs', label: 'Tin tuyển dụng' },
     { to: '/recruiter/company', label: 'Công ty' },
   ],
   admin: [
-    { to: '/', label: 'Việc làm' },
+    { to: '/jobs', label: 'Việc làm' },
     { to: '/admin', label: 'Quản trị' },
   ],
 };
+
+const PUBLIC_NAV = [
+  { to: '/', label: 'Trang chủ' },
+  { to: '/jobs', label: 'Việc làm' },
+  { to: '/companies', label: 'Công ty' },
+];
 
 export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
   const { token, role, email, displayName, signOut } = useAuth();
@@ -120,7 +126,7 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
     navigate('/');
   };
 
-  const navLinks = role ? NAV_BY_ROLE[role] : [{ to: '/', label: 'Tìm việc' }];
+  const navLinks = role ? NAV_BY_ROLE[role] : PUBLIC_NAV;
   const roleLabel =
     role === 'candidate' ? 'Ứng viên' : role === 'recruiter' ? 'Nhà tuyển dụng' : 'Admin';
 
@@ -148,7 +154,7 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
             <NavLink
               key={link.to}
               to={link.to}
-              end={link.to === '/' || link.to === '/candidate' || link.to === '/recruiter' || link.to === '/admin'}
+              end={link.to === '/' || link.to === '/jobs' || link.to === '/companies' || link.to === '/candidate' || link.to === '/recruiter' || link.to === '/admin'}
               className={({ isActive }) =>
                 `px-3 py-2 rounded-lg transition-colors ${
                   isActive
@@ -272,13 +278,22 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
               )}
             </div>
           ) : (
-            <Button
-              onClick={onLoginClick}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold py-2 px-4 shadow-md shadow-primary/20 flex items-center gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Đăng nhập / Đăng ký</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={onLoginClick}
+                variant="ghost"
+                className="rounded-lg text-xs font-bold py-2 px-3 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+              >
+                <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                <span>Đăng nhập</span>
+              </Button>
+              <Button
+                onClick={() => navigate('/register')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold py-2 px-4 shadow-md shadow-primary/20"
+              >
+                <span>Đăng ký</span>
+              </Button>
+            </div>
           )}
         </div>
       </div>

@@ -66,6 +66,19 @@ export async function fetchJobs(): Promise<Job[]> {
   return data.map(normalizeJob);
 }
 
+export async function fetchJobById(id: string): Promise<Job> {
+  const res = await fetch(`${BASE_URL}/job-postings/${id}`);
+  if (!res.ok) throw new Error('Không tìm thấy tin tuyển dụng');
+  const data = await res.json();
+  return normalizeJob(data);
+}
+
+export async function fetchCompanyById(id: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/companies/${id}`);
+  if (!res.ok) throw new Error('Không tìm thấy công ty');
+  return res.json();
+}
+
 export async function fetchCandidates(): Promise<Candidate[]> {
   const res = await fetch(`${BASE_URL}/job-users`);
   if (!res.ok) throw new Error('Không thể kết nối đến máy chủ người dùng');
