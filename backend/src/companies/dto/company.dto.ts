@@ -27,6 +27,10 @@ export class CreateCompanyDto {
   @IsString()
   @IsOptional()
   location?: string;
+
+  @IsString()
+  @IsOptional()
+  koreanCompanyName?: string;
 }
 
 export class UpdateCompanyDto {
@@ -61,4 +65,8 @@ export class UpdateCompanyDto {
   @IsBoolean()
   @IsOptional()
   isVerified?: boolean;
+
+  @IsString()
+  @IsOptional()
+  koreanCompanyName?: string;
 }

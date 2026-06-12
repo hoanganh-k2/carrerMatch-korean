@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, JobUser } from '@prisma/client';
+import { EmbeddingService } from '../ai/embedding.service';
 
 @Injectable()
 export class JobUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly embeddingService: EmbeddingService,
+  ) {}
 
   async create(data: Prisma.JobUserCreateInput): Promise<JobUser> {
     return this.prisma.jobUser.create({
@@ -32,10 +36,27 @@ export class JobUsersService {
   ): Promise<JobUser> {
     // Ensure user exists first
     await this.findOne(userId);
-    return this.prisma.jobUser.update({
+    const updated = await this.prisma.jobUser.update({
       where: { userId },
       data,
     });
+
+    // Hồ sơ năng lực thay đổi → sinh lại skillsVector để matching/recommendation dùng vector mới
+    const profileChanged =
+      data.skillsExtracted !== undefined ||
+      data.topikLevel !== undefined ||
+      data.yearsExperience !== undefined;
+    if (profileChanged) {
+      const profileText = `Kỹ năng: ${updated.skillsExtracted.join(', ')}. Trình độ tiếng Hàn: ${updated.topikLevel}. Kinh nghiệm: ${updated.yearsExperience ?? 0} năm.`;
+      const embedding =
+        await this.embeddingService.generateEmbedding(profileText);
+      return this.prisma.jobUser.update({
+        where: { userId },
+        data: { skillsVector: JSON.stringify(embedding) },
+      });
+    }
+
+    return updated;
   }
 
   async remove(userId: string): Promise<JobUser> {

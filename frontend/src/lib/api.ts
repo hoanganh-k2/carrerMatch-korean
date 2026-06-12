@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 export interface Job {
   id: string;
@@ -11,6 +11,12 @@ export interface Job {
   requiredSkills: string[];
   minTopikRequired: string;
   similarityScore?: number;
+  status?: string;
+  jobType?: string;
+  experienceYearsMin?: number;
+  applicationDeadline?: string;
+  viewsCount?: number;
+  applyCount?: number;
   company?: {
     companyName: string;
     logoUrl: string | null;
@@ -38,6 +44,12 @@ export const normalizeJob = (job: any): Job => {
     requiredSkills: job.requiredSkills ?? job.required_skills ?? [],
     minTopikRequired: job.minTopikRequired ?? job.min_topik_required,
     similarityScore: job.similarity_score ?? job.similarityScore,
+    status: job.status,
+    jobType: job.jobType ?? job.job_type,
+    experienceYearsMin: job.experienceYearsMin ?? job.experience_years_min,
+    applicationDeadline: job.applicationDeadline ?? job.application_deadline,
+    viewsCount: job.viewsCount ?? job.views_count,
+    applyCount: job.applyCount ?? job.apply_count,
     company: job.company
       ? {
           companyName: job.company.companyName ?? job.company.company_name,
@@ -422,4 +434,322 @@ export async function updateApplicationStatus(
   });
   if (!res.ok) throw new Error('Cập nhật trạng thái đơn ứng tuyển thất bại');
   return res.json();
+}
+
+// Recruiter: danh sách đơn ứng tuyển của 1 tin tuyển dụng
+export async function fetchApplicationsByJob(jobId: string, token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/job-applications/job/${jobId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải danh sách đơn ứng tuyển của tin này');
+  return res.json();
+}
+
+// ==================== 10. RECOMMENDATIONS & AI MATCHING ====================
+
+// Candidate: việc làm gợi ý riêng (kèm điểm + giải thích + kỹ năng thiếu)
+export async function fetchRecommendations(token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/job-postings/recommendations/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải danh sách việc làm gợi ý');
+  return res.json();
+}
+
+// Recruiter: ứng viên AI gợi ý cho 1 tin tuyển dụng
+export async function fetchMatchCandidates(jobId: string, token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/job-postings/${jobId}/match-candidates`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải danh sách ứng viên phù hợp');
+  return res.json();
+}
+
+// ==================== 11. JOB POSTINGS CRUD (RECRUITER) ====================
+
+export async function createJobPosting(data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/job-postings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Đăng tin tuyển dụng thất bại');
+  }
+  return res.json();
+}
+
+export async function updateJobPosting(id: string, data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/job-postings/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Cập nhật tin tuyển dụng thất bại');
+  return res.json();
+}
+
+export async function deleteJobPosting(id: string, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/job-postings/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Xóa tin tuyển dụng thất bại');
+  return res.json();
+}
+
+// ==================== 12. DASHBOARDS THEO ROLE ====================
+
+export async function fetchCandidateDashboard(token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/dashboard/candidate`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải dashboard ứng viên');
+  return res.json();
+}
+
+export async function fetchRecruiterDashboard(token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/dashboard/recruiter`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải dashboard nhà tuyển dụng');
+  return res.json();
+}
+
+export async function fetchAdminDashboard(token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/dashboard/admin`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải dashboard quản trị');
+  return res.json();
+}
+
+// ==================== 13. COMPANIES ====================
+
+export async function fetchMyCompany(token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/companies/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải hồ sơ công ty');
+  return res.json();
+}
+
+export async function fetchCompanies(): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/companies`);
+  if (!res.ok) throw new Error('Lỗi tải danh sách công ty');
+  return res.json();
+}
+
+export async function createCompany(data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/companies`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Tạo hồ sơ công ty thất bại');
+  }
+  return res.json();
+}
+
+export async function updateCompany(id: string, data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/companies/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Cập nhật hồ sơ công ty thất bại');
+  return res.json();
+}
+
+// Admin: duyệt xác thực công ty
+export async function verifyCompany(id: string, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/companies/${id}/verify`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Duyệt công ty thất bại');
+  return res.json();
+}
+
+// ==================== 14. PROFILE (JOB USER) ====================
+
+export async function fetchMyJobUserProfile(token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/job-users/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải hồ sơ ứng viên');
+  return res.json();
+}
+
+export async function updateMyJobUserProfile(data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/job-users/me`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Cập nhật hồ sơ thất bại');
+  }
+  return res.json();
+}
+
+// ==================== 15. RESUMES (CV) ====================
+
+export async function fetchMyResumes(token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/resumes/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải danh sách CV');
+  return res.json();
+}
+
+export async function createResume(data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/resumes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Tạo CV thất bại');
+  return res.json();
+}
+
+export async function updateResume(id: string, data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/resumes/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Cập nhật CV thất bại');
+  return res.json();
+}
+
+export async function deleteResume(id: string, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/resumes/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Xóa CV thất bại');
+  return res.json();
+}
+
+async function postResumeSection(path: string, data: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Thêm mục CV thất bại');
+  }
+  return res.json();
+}
+
+async function deleteResumeSection(path: string, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Xóa mục CV thất bại');
+  return res.json();
+}
+
+export const addExperience = (resumeId: string, data: any, token: string) =>
+  postResumeSection(`/resumes/${resumeId}/experiences`, data, token);
+export const deleteExperience = (expId: string, token: string) =>
+  deleteResumeSection(`/resumes/experiences/${expId}`, token);
+export const addEducation = (resumeId: string, data: any, token: string) =>
+  postResumeSection(`/resumes/${resumeId}/educations`, data, token);
+export const deleteEducation = (eduId: string, token: string) =>
+  deleteResumeSection(`/resumes/educations/${eduId}`, token);
+export const addCertification = (resumeId: string, data: any, token: string) =>
+  postResumeSection(`/resumes/${resumeId}/certifications`, data, token);
+export const deleteCertification = (certId: string, token: string) =>
+  deleteResumeSection(`/resumes/certifications/${certId}`, token);
+
+// ==================== 16. INTERVIEWS (RECRUITER) ====================
+
+export async function createInterview(
+  data: {
+    applicationId: string;
+    title: string;
+    description?: string;
+    scheduledAt: string;
+    durationMinutes?: number;
+    meetingLink?: string;
+    interviewLanguage?: string;
+    interpreterNeeded?: boolean;
+  },
+  token: string,
+): Promise<any> {
+  const res = await fetch(`${BASE_URL}/interviews`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Tạo lịch phỏng vấn thất bại');
+  }
+  return res.json();
+}
+
+// ==================== 17. SKILL TAXONOMY ====================
+
+export async function fetchSkillTaxonomy(): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/skill-taxonomy`);
+  if (!res.ok) throw new Error('Lỗi tải danh mục kỹ năng');
+  return res.json();
+}
+
+// ==================== 18. CAREER EVENTS (BEHAVIOR LOG) ====================
+
+// Fire-and-forget: ghi log hành vi (view_job, save...) để nuôi Metadata dataset
+export function logCareerEvent(data: {
+  userId: string;
+  eventType: string;
+  jobId?: string;
+  searchQuery?: string;
+  clickPosition?: number;
+  timeSpentSeconds?: number;
+  deviceType?: string;
+}): void {
+  fetch(`${BASE_URL}/career-events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).catch(() => {
+    // Log hành vi không được chặn trải nghiệm chính
+  });
 }

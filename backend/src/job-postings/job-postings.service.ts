@@ -23,14 +23,16 @@ export class JobPostingsService {
       // 2. Lưu vào PostgreSQL bằng lệnh SQL thô để nạp được kiểu dữ liệu Unsupported("vector(768)")
       await this.prisma.$executeRaw`
         INSERT INTO job_postings (
-          job_id, company_id, title, description, jd_embedding, 
-          required_skills, preferred_skills, salary_min, salary_max, 
-          job_type, experience_years_min, location, application_deadline, status
+          job_id, company_id, title, description, jd_embedding,
+          required_skills, preferred_skills, salary_min, salary_max,
+          job_type, experience_years_min, location, application_deadline, status,
+          min_topik_required
         ) VALUES (
-          gen_random_uuid(), ${data.companyId}, ${data.title}, ${data.description}, 
-          ${`[${embedding.join(',')}]`}::vector, ${data.requiredSkills}, ${data.preferredSkills}, 
-          ${data.salaryMin}, ${data.salaryMax}, ${data.jobType}::"JobType", 
-          ${data.experienceYearsMin}, ${data.location}, ${new Date(data.applicationDeadline)}, 'active'
+          gen_random_uuid(), ${data.companyId}, ${data.title}, ${data.description},
+          ${`[${embedding.join(',')}]`}::vector, ${data.requiredSkills}, ${data.preferredSkills},
+          ${data.salaryMin}, ${data.salaryMax}, ${data.jobType}::"JobType",
+          ${data.experienceYearsMin}, ${data.location}, ${new Date(data.applicationDeadline)}, 'active',
+          ${data.minTopikRequired ?? 'NONE'}::"TopikLevel"
         );
       `;
     } catch (err: any) {
@@ -50,6 +52,7 @@ export class JobPostingsService {
             location: data.location,
             applicationDeadline: new Date(data.applicationDeadline),
             status: 'active',
+            minTopikRequired: data.minTopikRequired ?? 'NONE',
           },
         });
       } else {
@@ -62,8 +65,16 @@ export class JobPostingsService {
     };
   }
 
-  async findAll(): Promise<JobPosting[]> {
-    return this.prisma.jobPosting.findMany();
+  async findAll() {
+    // Bỏ jdEmbedding (vector 768 chiều dạng text ~17KB/tin) để response nhẹ;
+    // kèm thông tin công ty cho card hiển thị
+    return this.prisma.jobPosting.findMany({
+      omit: { jdEmbedding: true },
+      include: {
+        company: { select: { companyName: true, logoUrl: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findOne(jobId: string): Promise<JobPosting> {
@@ -179,28 +190,31 @@ export class JobPostingsService {
         LIMIT ${limit};
       `;
 
-      return (matchedCandidates as any[]).map((candidate) => {
-        let languageBonus = 0;
-        if (candidate.topik_level === job.minTopikRequired) languageBonus = 0.1;
-        const finalScore = Math.min(
-          candidate.semantic_score * 0.7 + languageBonus * 0.3,
-          1.0,
-        );
+      return (matchedCandidates as any[])
+        .map((candidate) => {
+          let languageBonus = 0;
+          if (candidate.topik_level === job.minTopikRequired)
+            languageBonus = 0.1;
+          const finalScore = Math.min(
+            candidate.semantic_score * 0.7 + languageBonus * 0.3,
+            1.0,
+          );
 
-        return {
-          candidateId: candidate.user_id,
-          fullName: candidate.full_name,
-          finalMatchScore: Math.round(finalScore * 100) / 100,
-          breakdown: {
-            semanticMatch: Math.round(candidate.semantic_score * 100) + '%',
-            koreanLevelMatch:
-              candidate.topik_level === job.minTopikRequired
-                ? 'Đạt chuẩn (TOPIK ' + job.minTopikRequired + ')'
-                : 'Cần kiểm tra thêm',
-            explanation: `Phù hợp kỹ năng chuyên môn đạt ${Math.round(candidate.semantic_score * 100)}%. Năng lực tiếng Hàn ${candidate.topik_level}.`,
-          },
-        };
-      });
+          return {
+            candidateId: candidate.user_id,
+            fullName: candidate.full_name,
+            finalMatchScore: Math.round(finalScore * 100) / 100,
+            breakdown: {
+              semanticMatch: Math.round(candidate.semantic_score * 100) + '%',
+              koreanLevelMatch:
+                candidate.topik_level === job.minTopikRequired
+                  ? 'Đạt chuẩn (TOPIK ' + job.minTopikRequired + ')'
+                  : 'Cần kiểm tra thêm',
+              explanation: `Phù hợp kỹ năng chuyên môn đạt ${Math.round(candidate.semantic_score * 100)}%. Năng lực tiếng Hàn ${candidate.topik_level}.`,
+            },
+          };
+        })
+        .sort((a, b) => b.finalMatchScore - a.finalMatchScore);
     } catch (err: any) {
       if (err.message?.includes('vector') || err.code === 'P2010') {
         const candidates = await this.prisma.jobUser.findMany({
@@ -250,29 +264,31 @@ export class JobPostingsService {
         scoredCandidates.sort((a, b) => b.semantic_score - a.semantic_score);
         const matched = scoredCandidates.slice(0, limit);
 
-        return matched.map((candidate) => {
-          let languageBonus = 0;
-          if (candidate.topik_level === job.minTopikRequired)
-            languageBonus = 0.1;
-          const finalScore = Math.min(
-            candidate.semantic_score * 0.7 + languageBonus * 0.3,
-            1.0,
-          );
+        return matched
+          .map((candidate) => {
+            let languageBonus = 0;
+            if (candidate.topik_level === job.minTopikRequired)
+              languageBonus = 0.1;
+            const finalScore = Math.min(
+              candidate.semantic_score * 0.7 + languageBonus * 0.3,
+              1.0,
+            );
 
-          return {
-            candidateId: candidate.user_id,
-            fullName: candidate.full_name,
-            finalMatchScore: Math.round(finalScore * 100) / 100,
-            breakdown: {
-              semanticMatch: Math.round(candidate.semantic_score * 100) + '%',
-              koreanLevelMatch:
-                candidate.topik_level === job.minTopikRequired
-                  ? 'Đạt chuẩn (TOPIK ' + job.minTopikRequired + ')'
-                  : 'Cần kiểm tra thêm',
-              explanation: `Phù hợp kỹ năng chuyên môn đạt ${Math.round(candidate.semantic_score * 100)}%. Năng lực tiếng Hàn ${candidate.topik_level}.`,
-            },
-          };
-        });
+            return {
+              candidateId: candidate.user_id,
+              fullName: candidate.full_name,
+              finalMatchScore: Math.round(finalScore * 100) / 100,
+              breakdown: {
+                semanticMatch: Math.round(candidate.semantic_score * 100) + '%',
+                koreanLevelMatch:
+                  candidate.topik_level === job.minTopikRequired
+                    ? 'Đạt chuẩn (TOPIK ' + job.minTopikRequired + ')'
+                    : 'Cần kiểm tra thêm',
+                explanation: `Phù hợp kỹ năng chuyên môn đạt ${Math.round(candidate.semantic_score * 100)}%. Năng lực tiếng Hàn ${candidate.topik_level}.`,
+              },
+            };
+          })
+          .sort((a, b) => b.finalMatchScore - a.finalMatchScore);
       }
       throw err;
     }

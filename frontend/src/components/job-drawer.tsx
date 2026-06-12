@@ -264,26 +264,26 @@ export function JobDrawer({
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Dimmed Background Overlay */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
         onClick={onClose}
       />
 
       {/* Drawer content panel */}
-      <div className="relative w-full max-w-2xl h-full bg-[#0d1222] border-l border-zinc-800 flex flex-col shadow-2xl z-10 animate-in slide-in-from-right duration-350">
+      <div className="relative w-full max-w-2xl h-full bg-background border-l border-border flex flex-col shadow-2xl z-10 animate-in slide-in-from-right duration-350">
         {/* Header */}
-        <div className="p-6 border-b border-zinc-850 flex items-start justify-between bg-zinc-950/20">
+        <div className="p-6 border-b border-border flex items-start justify-between bg-secondary/50">
           <div className="flex-1 mr-4">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 py-0.5 rounded-md text-[10px]">
+              <Badge variant="outline" className="bg-accent text-primary border-accent py-0.5 rounded-md text-[10px]">
                 {formatTopik(job.minTopikRequired)}
               </Badge>
               {job.company?.companyName && (
-                <span className="text-xs text-zinc-400 font-semibold tracking-wide uppercase">
+                <span className="text-xs text-muted-foreground font-semibold tracking-wide uppercase">
                   {job.company.companyName}
                 </span>
               )}
             </div>
-            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-snug tracking-tight">
+            <h2 className="text-xl md:text-2xl font-extrabold text-foreground leading-snug tracking-tight">
               {job.title}
             </h2>
           </div>
@@ -294,10 +294,10 @@ export function JobDrawer({
               size="icon"
               disabled={bookmarkLoading}
               onClick={handleBookmarkToggle}
-              className={`w-9 h-9 rounded-lg border border-zinc-800 transition-all ${
+              className={`w-9 h-9 rounded-lg border border-border transition-all ${
                 isBookmarked
-                  ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
+                  ? 'text-amber-500 bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
               }`}
             >
               {isBookmarked ? (
@@ -312,7 +312,7 @@ export function JobDrawer({
               onClick={onClose}
               variant="ghost"
               size="icon"
-              className="w-9 h-9 rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+              className="w-9 h-9 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -320,13 +320,13 @@ export function JobDrawer({
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-zinc-850 bg-zinc-950/40">
+        <div className="flex border-b border-border bg-secondary/60">
           <button
             onClick={() => setActiveTab('details')}
             className={`flex-1 py-3 text-sm font-semibold transition-all border-b-2 text-center ${
               activeTab === 'details'
-                ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/20'
+                ? 'border-primary text-primary bg-accent/50'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
           >
             Chi tiết công việc
@@ -335,13 +335,13 @@ export function JobDrawer({
             onClick={() => setActiveTab('reviews')}
             className={`flex-1 py-3 text-sm font-semibold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 ${
               activeTab === 'reviews'
-                ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/20'
+                ? 'border-primary text-primary bg-accent/50'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
           >
             Đánh giá công ty
             {reviewsData && reviewsData.totalReviews > 0 && (
-              <span className="px-1.5 py-0.25 rounded-full text-[10px] bg-zinc-800 text-zinc-300 font-bold border border-zinc-700">
+              <span className="px-1.5 py-0.25 rounded-full text-[10px] bg-secondary text-foreground font-bold border border-border">
                 {reviewsData.totalReviews}
               </span>
             )}
@@ -354,17 +354,17 @@ export function JobDrawer({
             <>
               {/* Overview Details Cards */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-zinc-900/40 border border-zinc-850 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-zinc-500 tracking-wider uppercase">Địa điểm làm việc</span>
-                  <div className="flex items-center gap-1.5 text-zinc-200 font-semibold text-sm">
-                    <MapPin className="w-4 h-4 text-indigo-400 shrink-0" />
+                <div className="p-4 bg-card border border-border rounded-xl flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">Địa điểm làm việc</span>
+                  <div className="flex items-center gap-1.5 text-foreground font-semibold text-sm">
+                    <MapPin className="w-4 h-4 text-primary shrink-0" />
                     <span>{job.location}</span>
                   </div>
                 </div>
-                <div className="p-4 bg-zinc-900/40 border border-zinc-850 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-zinc-500 tracking-wider uppercase">Mức lương</span>
-                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
-                    <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="p-4 bg-card border border-border rounded-xl flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">Mức lương</span>
+                  <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm">
+                    <DollarSign className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>{formatSalary(job.salaryMin, job.salaryMax)}</span>
                   </div>
                 </div>
@@ -372,12 +372,12 @@ export function JobDrawer({
 
               {/* Skills required */}
               <div>
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2.5">Kỹ năng cốt lõi</h3>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2.5">Kỹ năng cốt lõi</h3>
                 <div className="flex flex-wrap gap-2">
                   {job.requiredSkills.map((skill, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shadow-sm"
+                      className="px-3 py-1 rounded-lg text-xs font-semibold bg-accent text-primary border border-accent shadow-sm"
                     >
                       {skill}
                     </span>
@@ -386,16 +386,16 @@ export function JobDrawer({
               </div>
 
               {/* JD description */}
-              <div className="border-t border-zinc-850/60 pt-5">
-                <h3 className="text-sm font-bold text-zinc-300 mb-3.5">Mô tả công việc (JD)</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-wrap">
+              <div className="border-t border-border pt-5">
+                <h3 className="text-sm font-bold text-foreground mb-3.5">Mô tả công việc (JD)</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
                   {job.description}
                 </p>
               </div>
 
               {/* Apply Zone Toggle */}
               {!applySuccess && (
-                <div className="border-t border-zinc-850/60 pt-6">
+                <div className="border-t border-border pt-6">
                   {!showApplyForm ? (
                     <Button
                       onClick={() => {
@@ -405,18 +405,18 @@ export function JobDrawer({
                           setShowApplyForm(true);
                         }
                       }}
-                      className="w-full py-6 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all duration-300"
+                      className="w-full py-6 text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all duration-300"
                     >
                       <span>Ứng tuyển ngay vị trí này</span>
                     </Button>
                   ) : (
-                    <form onSubmit={handleApplySubmit} className="space-y-4 bg-zinc-900/30 p-5 rounded-2xl border border-zinc-850/80">
+                    <form onSubmit={handleApplySubmit} className="space-y-4 bg-card p-5 rounded-2xl border border-border">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-bold text-sm text-zinc-200">Hồ sơ ứng tuyển</h4>
+                        <h4 className="font-bold text-sm text-foreground">Hồ sơ ứng tuyển</h4>
                         <button
                           type="button"
                           onClick={() => setShowApplyForm(false)}
-                          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
                           Hủy
                         </button>
@@ -424,26 +424,26 @@ export function JobDrawer({
 
                       {/* File Drag Drop Zone */}
                       <div>
-                        <label className="block text-xs font-medium text-zinc-400 mb-2">
+                        <label className="block text-xs font-medium text-muted-foreground mb-2">
                           CV của bạn (Định dạng PDF, tối đa 5MB) <span className="text-red-500">*</span>
                         </label>
-                        <div className="relative border-2 border-dashed border-zinc-800 hover:border-zinc-700 transition-all rounded-xl p-6 bg-zinc-950/20 text-center flex flex-col items-center justify-center cursor-pointer group">
+                        <div className="relative border-2 border-dashed border-border hover:border-primary/40 transition-all rounded-xl p-6 bg-secondary/50 text-center flex flex-col items-center justify-center cursor-pointer group">
                           <input
                             type="file"
                             accept=".pdf"
                             onChange={handleFileChange}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />
-                          <UploadCloud className="w-10 h-10 text-zinc-500 group-hover:text-indigo-400 transition-colors mb-2" />
+                          <UploadCloud className="w-10 h-10 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
                           {cvFile ? (
-                            <div className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
+                            <div className="text-sm font-semibold text-emerald-600 flex items-center gap-1.5">
                               <CheckCircle2 className="w-4 h-4" />
                               <span className="max-w-[250px] truncate">{cvFile.name}</span>
                             </div>
                           ) : (
                             <>
-                              <span className="text-xs font-semibold text-zinc-300">Nhấp hoặc kéo thả file CV vào đây</span>
-                              <span className="text-[10px] text-zinc-500 mt-1">Chỉ chấp nhận file PDF dưới 5MB</span>
+                              <span className="text-xs font-semibold text-foreground">Nhấp hoặc kéo thả file CV vào đây</span>
+                              <span className="text-[10px] text-muted-foreground mt-1">Chỉ chấp nhận file PDF dưới 5MB</span>
                             </>
                           )}
                         </div>
@@ -451,7 +451,7 @@ export function JobDrawer({
 
                       {/* Cover Letter */}
                       <div>
-                        <label className="block text-xs font-medium text-zinc-400 mb-2">
+                        <label className="block text-xs font-medium text-muted-foreground mb-2">
                           Thư giới thiệu (Cover Letter)
                         </label>
                         <textarea
@@ -459,12 +459,12 @@ export function JobDrawer({
                           value={coverLetter}
                           onChange={(e) => setCoverLetter(e.target.value)}
                           placeholder="Chia sẻ lý do bạn phù hợp với công việc này..."
-                          className="w-full rounded-xl bg-zinc-950/60 border border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 p-3 text-xs resize-none"
+                          className="w-full rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border p-3 text-xs resize-none"
                         />
                       </div>
 
                       {applyError && (
-                        <div className="p-3 bg-red-950/25 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-start gap-2 animate-pulse">
+                        <div className="p-3 bg-destructive/5 border border-red-500/20 rounded-xl text-xs text-destructive flex items-start gap-2 animate-pulse">
                           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>{applyError}</span>
                         </div>
@@ -473,7 +473,7 @@ export function JobDrawer({
                       <Button
                         type="submit"
                         disabled={applying}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl py-5 text-xs font-semibold flex items-center justify-center gap-2 shadow-md transition-all duration-300"
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl py-5 text-xs font-semibold flex items-center justify-center gap-2 shadow-md transition-all duration-300"
                       >
                         {applying ? (
                           <>
@@ -494,16 +494,16 @@ export function JobDrawer({
 
               {/* Apply Success State */}
               {applySuccess && (
-                <div className="p-6 bg-emerald-950/20 border border-emerald-500/25 rounded-2xl text-center space-y-3">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-                  <h4 className="font-extrabold text-emerald-400 text-base">Nộp đơn thành công!</h4>
-                  <p className="text-zinc-400 text-xs max-w-md mx-auto leading-relaxed">
+                <div className="p-6 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl text-center space-y-3">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
+                  <h4 className="font-extrabold text-emerald-600 text-base">Nộp đơn thành công!</h4>
+                  <p className="text-muted-foreground text-xs max-w-md mx-auto leading-relaxed">
                     Hồ sơ của bạn đã được chuyển đến bộ phận nhân sự. Trạng thái đơn và lịch phỏng vấn sẽ được cập nhật trực quan trên **Dashboard cá nhân** của bạn.
                   </p>
                   <Button
                     onClick={onClose}
                     variant="outline"
-                    className="border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 text-xs rounded-lg px-4 py-1.5"
+                    className="border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 text-xs rounded-lg px-4 py-1.5"
                   >
                     Đóng cửa sổ
                   </Button>
@@ -515,27 +515,27 @@ export function JobDrawer({
             <div className="space-y-6">
               {reviewsLoading ? (
                 <div className="py-20 text-center flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                  <span className="text-xs text-zinc-500">Đang tải đánh giá công ty...</span>
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  <span className="text-xs text-muted-foreground">Đang tải đánh giá công ty...</span>
                 </div>
               ) : (
                 <>
                   {/* Reviews Summary Stats */}
-                  <div className="p-5 bg-zinc-900/30 border border-zinc-850 rounded-2xl flex items-center justify-between">
+                  <div className="p-5 bg-card border border-border rounded-2xl flex items-center justify-between">
                     <div>
-                      <h4 className="font-bold text-sm text-zinc-300">Đánh giá chung</h4>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">Dựa trên các lượt đánh giá từ ứng viên đã nộp đơn</p>
+                      <h4 className="font-bold text-sm text-foreground">Đánh giá chung</h4>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Dựa trên các lượt đánh giá từ ứng viên đã nộp đơn</p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-2xl font-black text-white">
+                        <span className="text-2xl font-black text-foreground">
                           {reviewsData ? reviewsData.averageRating.toFixed(1) : '0.0'}
                         </span>
-                        <div className="flex items-center text-yellow-400">
-                          <Star className="w-5 h-5 fill-yellow-400 shrink-0" />
+                        <div className="flex items-center text-amber-500">
+                          <Star className="w-5 h-5 fill-amber-500 shrink-0" />
                         </div>
                       </div>
-                      <span className="text-[10px] text-zinc-400 font-medium bg-zinc-800 px-2 py-0.5 border border-zinc-700/50 rounded-md">
+                      <span className="text-[10px] text-muted-foreground font-medium bg-secondary px-2 py-0.5 border border-border rounded-md">
                         {reviewsData ? reviewsData.totalReviews : 0} lượt đánh giá
                       </span>
                     </div>
@@ -543,22 +543,22 @@ export function JobDrawer({
 
                   {/* Reviews Form */}
                   {!submitReviewSuccess ? (
-                    <form onSubmit={handleReviewSubmit} className="space-y-4 bg-zinc-900/25 p-4 rounded-xl border border-zinc-850/50">
+                    <form onSubmit={handleReviewSubmit} className="space-y-4 bg-card p-4 rounded-xl border border-border">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-xs text-zinc-300">Viết đánh giá của bạn</h4>
+                        <h4 className="font-semibold text-xs text-foreground">Viết đánh giá của bạn</h4>
                         <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
                               key={star}
                               type="button"
                               onClick={() => setReviewRating(star)}
-                              className="text-zinc-500 hover:scale-110 transition-transform"
+                              className="text-muted-foreground hover:scale-110 transition-transform"
                             >
                               <Star
                                 className={`w-4.5 h-4.5 ${
                                   star <= reviewRating
-                                    ? 'text-yellow-400 fill-yellow-400'
-                                    : 'text-zinc-600'
+                                    ? 'text-amber-500 fill-amber-500'
+                                    : 'text-muted-foreground/70'
                                 }`}
                               />
                             </button>
@@ -572,17 +572,17 @@ export function JobDrawer({
                           value={reviewText}
                           onChange={(e) => setReviewText(e.target.value)}
                           placeholder="Môi trường làm việc thế nào? Chế độ đãi ngộ ra sao?..."
-                          className="w-full rounded-xl bg-zinc-950/60 border border-zinc-800 text-zinc-200 placeholder:text-zinc-650 focus:outline-none focus:border-zinc-700 p-3 text-xs resize-none"
+                          className="w-full rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-border p-3 text-xs resize-none"
                         />
                       </div>
 
                       <div className="flex items-center justify-between text-xs">
-                        <label className="flex items-center gap-1.5 text-zinc-400 cursor-pointer select-none">
+                        <label className="flex items-center gap-1.5 text-muted-foreground cursor-pointer select-none">
                           <input
                             type="checkbox"
                             checked={isAnonymous}
                             onChange={(e) => setIsAnonymous(e.target.checked)}
-                            className="rounded bg-zinc-950 border-zinc-800 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5"
+                            className="rounded bg-secondary border-border text-primary focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5"
                           />
                           <span>Đánh giá ẩn danh</span>
                         </label>
@@ -591,7 +591,7 @@ export function JobDrawer({
                           type="submit"
                           disabled={submittingReview}
                           size="sm"
-                          className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white px-3 py-1.5 text-xs rounded-lg font-medium border border-zinc-750 flex items-center gap-1.5"
+                          className="bg-secondary hover:bg-accent text-foreground hover:text-foreground px-3 py-1.5 text-xs rounded-lg font-medium border border-border flex items-center gap-1.5"
                         >
                           {submittingReview ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -603,43 +603,43 @@ export function JobDrawer({
                       </div>
 
                       {submitReviewError && (
-                        <div className="p-3 bg-red-950/20 border border-red-500/20 rounded-xl text-[11px] text-red-400 flex items-start gap-1.5">
+                        <div className="p-3 bg-destructive/5 border border-red-500/20 rounded-xl text-[11px] text-destructive flex items-start gap-1.5">
                           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>{submitReviewError}</span>
                         </div>
                       )}
                     </form>
                   ) : (
-                    <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-center text-xs text-emerald-400 font-medium">
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center text-xs text-emerald-600 font-medium">
                       Đã gửi đánh giá thành công! Cảm ơn nhận xét của bạn.
                     </div>
                   )}
 
                   {/* Reviews List */}
                   <div className="space-y-4">
-                    <h4 className="font-bold text-xs text-zinc-400 uppercase tracking-wider">Nhận xét chi tiết</h4>
+                    <h4 className="font-bold text-xs text-muted-foreground uppercase tracking-wider">Nhận xét chi tiết</h4>
                     {(!reviewsData || reviewsData.reviews.length === 0) ? (
-                      <p className="text-zinc-600 text-xs italic text-center py-6">
+                      <p className="text-muted-foreground/70 text-xs italic text-center py-6">
                         Chưa có đánh giá nào cho công ty này. Hãy là người đầu tiên!
                       </p>
                     ) : (
                       <div className="space-y-3">
                         {reviewsData.reviews.map((rev: any) => (
-                          <div key={rev.id} className="p-4 bg-zinc-900/35 border border-zinc-850/60 rounded-xl space-y-2">
+                          <div key={rev.id} className="p-4 bg-card border border-border rounded-xl space-y-2">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="font-bold text-zinc-300">
+                              <span className="font-bold text-foreground">
                                 {rev.isAnonymous ? 'Ứng viên ẩn danh' : (rev.candidate?.fullName || 'Ứng viên')}
                               </span>
-                              <div className="flex items-center gap-0.5 text-yellow-400">
+                              <div className="flex items-center gap-0.5 text-amber-500">
                                 {Array.from({ length: rev.rating }).map((_, i) => (
-                                  <Star key={i} className="w-3 h-3 fill-yellow-400 shrink-0" />
+                                  <Star key={i} className="w-3 h-3 fill-amber-500 shrink-0" />
                                 ))}
                               </div>
                             </div>
-                            <p className="text-zinc-400 text-xs leading-relaxed">
+                            <p className="text-muted-foreground text-xs leading-relaxed">
                               {rev.reviewText}
                             </p>
-                            <span className="block text-[10px] text-zinc-650 text-right">
+                            <span className="block text-[10px] text-muted-foreground/70 text-right">
                               {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
                             </span>
                           </div>
