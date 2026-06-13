@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Building2, MapPin, Users, ChevronLeft, ChevronRight, Search, HelpCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { fetchCompanies } from '@/lib/api';
+import { fetchCompanies, getUploadedFileUrl } from '@/lib/api';
 
 const PAGE_SIZE = 12;
 
@@ -113,14 +113,14 @@ export default function CompaniesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {paginated.map((company) => (
             <Link
-              key={company.id}
-              to={`/companies/${company.id}`}
+              key={company.companyId}
+              to={`/companies/${company.companyId}`}
               className="group p-5 bg-card border border-border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all"
             >
               <div className="flex items-start gap-3 mb-4">
                 {company.logoUrl ? (
                   <img
-                    src={company.logoUrl}
+                    src={getUploadedFileUrl(company.logoUrl)}
                     alt={company.companyName}
                     className="w-12 h-12 rounded-xl object-contain bg-background border border-border p-1"
                   />
@@ -154,9 +154,9 @@ export default function CompaniesPage() {
                     <MapPin className="w-3 h-3" />{company.location}
                   </span>
                 )}
-                {company.employeeCount && (
+                {company.companySize && (
                   <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />{company.employeeCount} nhân viên
+                    <Users className="w-3 h-3" />{company.companySize} nhân viên
                   </span>
                 )}
               </div>

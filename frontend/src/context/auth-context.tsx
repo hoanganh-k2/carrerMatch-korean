@@ -16,6 +16,7 @@ interface AuthState {
   email: string | null;
   userId: string | null;
   displayName: string | null;
+  avatarUrl: string | null;
   /** true khi đang khôi phục phiên từ localStorage lúc mở app */
   restoring: boolean;
 }
@@ -28,6 +29,8 @@ interface AuthContextValue extends AuthState {
     fullName?: string;
   }) => Promise<UserRole>;
   signOut: () => void;
+  /** Cập nhật avatar ngay trên UI sau khi upload thành công */
+  updateAvatar: (url: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -41,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: null,
     userId: null,
     displayName: null,
+    avatarUrl: null,
     restoring: true,
   });
 
@@ -62,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profile.jobUser?.fullName ||
             profile.company?.companyName ||
             profile.email,
+          avatarUrl: profile.avatarUrl ?? null,
           restoring: false,
         });
       })
@@ -75,12 +80,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(TOKEN_KEY, data.accessToken);
     const role = data.user.role as UserRole;
     let displayName = data.fullName || data.user.email;
+    let avatarUrl: string | null = null;
     try {
       const profile = await fetchProfile(data.accessToken);
       displayName =
         profile.jobUser?.fullName ||
         profile.company?.companyName ||
         displayName;
+      avatarUrl = profile.avatarUrl ?? null;
     } catch {
       // Không chặn đăng nhập nếu fetch profile lỗi
     }
@@ -90,9 +97,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: data.user.email,
       userId: data.user.id,
       displayName,
+      avatarUrl,
       restoring: false,
     });
     return role;
+  }, []);
+
+  const updateAvatar = useCallback((url: string) => {
+    setState((s) => ({ ...s, avatarUrl: url }));
   }, []);
 
   const signOut = useCallback(() => {
@@ -103,13 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: null,
       userId: null,
       displayName: null,
+      avatarUrl: null,
       restoring: false,
     });
   }, []);
 
   const value = useMemo(
-    () => ({ ...state, signIn, signOut }),
-    [state, signIn, signOut],
+    () => ({ ...state, signIn, signOut, updateAvatar }),
+    [state, signIn, signOut, updateAvatar],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

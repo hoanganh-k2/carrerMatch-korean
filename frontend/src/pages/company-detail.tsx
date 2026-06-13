@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, MapPin, Users, Globe, Star, Loader2, AlertCircle, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JobCard } from '@/components/job-card';
-import { fetchCompanyById, fetchCompanyReviews, fetchJobs, normalizeJob } from '@/lib/api';
+import { fetchCompanyById, fetchCompanyReviews, fetchJobs, getUploadedFileUrl } from '@/lib/api';
 
 export default function CompanyDetailPage() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -79,7 +79,7 @@ export default function CompanyDetailPage() {
         <div className="flex items-start gap-5">
           {company.logoUrl ? (
             <img
-              src={company.logoUrl}
+              src={getUploadedFileUrl(company.logoUrl)}
               alt={company.companyName}
               className="w-20 h-20 rounded-2xl object-contain bg-background border border-border p-2 shrink-0"
             />
@@ -107,9 +107,9 @@ export default function CompanyDetailPage() {
                   <MapPin className="w-3.5 h-3.5 text-primary" />{company.location}
                 </span>
               )}
-              {company.employeeCount && (
+              {company.companySize && (
                 <span className="flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-primary" />{company.employeeCount} nhân viên
+                  <Users className="w-3.5 h-3.5 text-primary" />{company.companySize} nhân viên
                 </span>
               )}
               {company.website && (

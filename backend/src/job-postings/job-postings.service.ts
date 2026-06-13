@@ -23,12 +23,12 @@ export class JobPostingsService {
       // 2. Lưu vào PostgreSQL bằng lệnh SQL thô để nạp được kiểu dữ liệu Unsupported("vector(768)")
       await this.prisma.$executeRaw`
         INSERT INTO job_postings (
-          job_id, company_id, title, description, jd_embedding,
+          job_id, company_id, title, description, jd_file_url, jd_embedding,
           required_skills, preferred_skills, salary_min, salary_max,
           job_type, experience_years_min, location, application_deadline, status,
           min_topik_required
         ) VALUES (
-          gen_random_uuid(), ${data.companyId}, ${data.title}, ${data.description},
+          gen_random_uuid(), ${data.companyId}, ${data.title}, ${data.description}, ${data.jdFileUrl ?? null},
           ${`[${embedding.join(',')}]`}::vector, ${data.requiredSkills}, ${data.preferredSkills},
           ${data.salaryMin}, ${data.salaryMax}, ${data.jobType}::"JobType",
           ${data.experienceYearsMin}, ${data.location}, ${new Date(data.applicationDeadline)}, 'active',
@@ -42,6 +42,7 @@ export class JobPostingsService {
             companyId: data.companyId,
             title: data.title,
             description: data.description,
+            jdFileUrl: data.jdFileUrl ?? null,
             jdEmbedding: vectorString,
             requiredSkills: data.requiredSkills,
             preferredSkills: data.preferredSkills,

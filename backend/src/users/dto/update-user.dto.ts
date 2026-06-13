@@ -19,6 +19,10 @@ export class UpdateUserDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 }
 
 export class UpdateJobUserDto {

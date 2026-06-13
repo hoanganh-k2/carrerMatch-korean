@@ -18,12 +18,14 @@ import {
   Clock,
   Briefcase,
   Building2,
+  FileText,
 } from 'lucide-react';
 import {
   fetchJobById,
   fetchCompanyReviews,
   createReview,
   uploadFile,
+  getUploadedFileUrl,
   applyJob,
   saveJob,
   unsaveJob,
@@ -362,6 +364,16 @@ export default function JobDetailPage() {
                   <div className="border-t border-border pt-5">
                     <h3 className="text-sm font-bold text-foreground mb-3">Mô tả công việc</h3>
                     <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">{job.description}</p>
+                    {job.jdFileUrl && (
+                      <a
+                        href={getUploadedFileUrl(job.jdFileUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-background text-xs font-bold text-primary hover:border-primary/40 transition-all"
+                      >
+                        <FileText className="w-4 h-4" /> Tải bản mô tả công việc (JD) đầy đủ
+                      </a>
+                    )}
                   </div>
                 </>
               ) : (

@@ -9,6 +9,8 @@ import {
   GraduationCap,
   Award,
   Star,
+  UploadCloud,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
@@ -23,6 +25,8 @@ import {
   deleteEducation,
   addCertification,
   deleteCertification,
+  uploadFile,
+  getUploadedFileUrl,
 } from '@/lib/api';
 
 const inputClass =
@@ -38,7 +42,12 @@ export default function ResumesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newSummary, setNewSummary] = useState('');
+  const [newFileUrl, setNewFileUrl] = useState<string | null>(null);
+  const [uploadingNewCv, setUploadingNewCv] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  // Upload/đổi file CV cho CV đã tồn tại
+  const [uploadingCvFor, setUploadingCvFor] = useState<string | null>(null);
 
   // Form thêm mục con: { resumeId, type } đang mở
   const [sectionForm, setSectionForm] = useState<{ resumeId: string; type: 'exp' | 'edu' | 'cert' } | null>(null);
@@ -62,23 +71,63 @@ export default function ResumesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  const handleNewCvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!token || !file) return;
+    setUploadingNewCv(true);
+    try {
+      const { url } = await uploadFile(file, 'cv', token);
+      setNewFileUrl(url);
+    } catch (err: any) {
+      alert(err.message || 'Tải file CV thất bại (chỉ nhận PDF, tối đa 5MB)');
+    } finally {
+      setUploadingNewCv(false);
+      e.target.value = '';
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !newTitle.trim()) return;
     setCreating(true);
     try {
       await createResume(
-        { title: newTitle.trim(), summary: newSummary.trim() || undefined, isDefault: resumes.length === 0 },
+        {
+          title: newTitle.trim(),
+          summary: newSummary.trim() || undefined,
+          fileUrl: newFileUrl || undefined,
+          isDefault: resumes.length === 0,
+        },
         token,
       );
       setNewTitle('');
       setNewSummary('');
+      setNewFileUrl(null);
       setShowCreate(false);
       await load();
     } catch (err: any) {
       alert(err.message || 'Tạo CV thất bại');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleResumeCvUpload = async (
+    resumeId: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!token || !file) return;
+    setUploadingCvFor(resumeId);
+    try {
+      const { url } = await uploadFile(file, 'cv', token);
+      await updateResume(resumeId, { fileUrl: url }, token);
+      await load();
+    } catch (err: any) {
+      alert(err.message || 'Tải file CV thất bại (chỉ nhận PDF, tối đa 5MB)');
+    } finally {
+      setUploadingCvFor(null);
+      e.target.value = '';
     }
   };
 
@@ -226,6 +275,25 @@ export default function ResumesPage() {
             rows={3}
             placeholder="Tóm tắt bản thân (mục tiêu nghề nghiệp, thế mạnh...)"
           />
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer">
+              <input type="file" accept="application/pdf" onChange={handleNewCvFile} className="hidden" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all">
+                {uploadingNewCv ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                {newFileUrl ? 'Đổi file CV (PDF)' : 'Đính kèm file CV (PDF)'}
+              </span>
+            </label>
+            {newFileUrl && (
+              <a
+                href={getUploadedFileUrl(newFileUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+              >
+                <FileText className="w-3.5 h-3.5" /> Đã tải lên — xem trước
+              </a>
+            )}
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setShowCreate(false)} className="text-xs">
               Hủy
@@ -267,6 +335,37 @@ export default function ResumesPage() {
                   {resume.summary && (
                     <p className="text-xs text-muted-foreground leading-relaxed">{resume.summary}</p>
                   )}
+                  {/* File CV đính kèm */}
+                  <div className="flex items-center gap-3 pt-1">
+                    {resume.fileUrl ? (
+                      <a
+                        href={getUploadedFileUrl(resume.fileUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Xem file CV (PDF)
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground italic">Chưa đính kèm file CV</span>
+                    )}
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => handleResumeCvUpload(resume.resumeId, e)}
+                        className="hidden"
+                      />
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground">
+                        {uploadingCvFor === resume.resumeId ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <UploadCloud className="w-3.5 h-3.5" />
+                        )}
+                        {resume.fileUrl ? 'Đổi file' : 'Tải lên'}
+                      </span>
+                    </label>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {!resume.isDefault && (

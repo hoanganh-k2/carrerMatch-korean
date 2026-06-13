@@ -10,6 +10,7 @@ export class UploadsService implements OnModuleInit {
       path.join(process.cwd(), 'uploads', 'cvs'),
       path.join(process.cwd(), 'uploads', 'avatars'),
       path.join(process.cwd(), 'uploads', 'logos'),
+      path.join(process.cwd(), 'uploads', 'jds'),
     ];
 
     for (const dir of dirs) {

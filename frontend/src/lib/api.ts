@@ -5,6 +5,7 @@ export interface Job {
   companyId: string;
   title: string;
   description: string;
+  jdFileUrl?: string | null;
   location: string;
   salaryMin: number | null;
   salaryMax: number | null;
@@ -38,6 +39,7 @@ export const normalizeJob = (job: any): Job => {
     companyId: job.companyId ?? job.company_id ?? '',
     title: job.title,
     description: job.description,
+    jdFileUrl: job.jdFileUrl ?? job.jd_file_url ?? null,
     location: job.location,
     salaryMin: job.salaryMin ?? job.salary_min,
     salaryMax: job.salaryMax ?? job.salary_max,
@@ -350,7 +352,7 @@ export async function fetchCompanyReviews(
 // ==================== 7. FILE UPLOADS ====================
 export async function uploadFile(
   file: File,
-  type: 'cv' | 'avatar' | 'logo',
+  type: 'cv' | 'avatar' | 'logo' | 'jd',
   token: string,
 ): Promise<{ url: string }> {
   const formData = new FormData();
@@ -367,8 +369,12 @@ export async function uploadFile(
   return res.json();
 }
 
-// Helper to get raw file URL
-export function getUploadedFileUrl(urlPath: string): string {
+// Helper to get raw file URL.
+// - File upload trả về đường dẫn tương đối (/uploads/file/...) → ghép BASE_URL.
+// - Dữ liệu seed có thể là URL tuyệt đối (http/https) hoặc data URI → giữ nguyên.
+export function getUploadedFileUrl(urlPath?: string | null): string {
+  if (!urlPath) return '';
+  if (/^(https?:|data:|blob:)/i.test(urlPath)) return urlPath;
   return `${BASE_URL}${urlPath}`;
 }
 
@@ -401,6 +407,26 @@ export async function fetchProfile(token: string): Promise<any> {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Không thể tải profile');
+  return res.json();
+}
+
+// Cập nhật thông tin tài khoản User (avatar, email...) — áp dụng cho mọi role
+export async function updateMyAccount(
+  data: { avatarUrl?: string; email?: string },
+  token: string,
+): Promise<any> {
+  const res = await fetch(`${BASE_URL}/users/me`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Cập nhật tài khoản thất bại');
+  }
   return res.json();
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Bell, LogIn, LogOut, Trash2 } from 'lucide-react';
+import { Bell, LogIn, LogOut, Trash2, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -9,6 +9,9 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotification,
+  uploadFile,
+  updateMyAccount,
+  getUploadedFileUrl,
 } from '@/lib/api';
 
 const NAV_BY_ROLE: Record<string, Array<{ to: string; label: string }>> = {
@@ -39,8 +42,28 @@ const PUBLIC_NAV = [
 ];
 
 export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
-  const { token, role, email, displayName, signOut } = useAuth();
+  const { token, role, email, displayName, avatarUrl, signOut, updateAvatar } = useAuth();
   const navigate = useNavigate();
+
+  // Upload avatar
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!token || !file) return;
+    setUploadingAvatar(true);
+    try {
+      const { url } = await uploadFile(file, 'avatar', token);
+      await updateMyAccount({ avatarUrl: url }, token);
+      updateAvatar(url);
+    } catch (err: any) {
+      alert(err.message || 'Tải ảnh đại diện thất bại');
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
 
   // Notifications
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -246,10 +269,18 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
                 variant="ghost"
                 className="rounded-lg text-xs font-bold py-2 px-2.5 flex items-center gap-2 border border-border hover:bg-secondary"
               >
-                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-[10px] font-extrabold text-primary-foreground">
-                    {(displayName || email || 'U').charAt(0).toUpperCase()}
-                  </span>
+                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center overflow-hidden">
+                  {avatarUrl ? (
+                    <img
+                      src={getUploadedFileUrl(avatarUrl)}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-extrabold text-primary-foreground">
+                      {(displayName || email || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <span className="hidden sm:inline max-w-[120px] truncate text-foreground">
                   {displayName || email}
@@ -258,12 +289,48 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
 
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-60 bg-popover border border-border rounded-xl shadow-xl overflow-hidden z-50">
-                  <div className="px-4 py-3 bg-secondary border-b border-border">
-                    <span className="block font-bold text-xs text-foreground truncate">{displayName}</span>
-                    <span className="block text-[11px] text-muted-foreground truncate">{email}</span>
-                    <span className="inline-block mt-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-accent text-accent-foreground">
-                      {roleLabel}
-                    </span>
+                  <div className="px-4 py-3 bg-secondary border-b border-border flex items-center gap-3">
+                    {/* Avatar có thể bấm để đổi ảnh */}
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      title="Đổi ảnh đại diện"
+                      className="relative w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden shrink-0 group"
+                    >
+                      {avatarUrl ? (
+                        <img
+                          src={getUploadedFileUrl(avatarUrl)}
+                          alt="avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-base font-extrabold text-primary-foreground">
+                          {(displayName || email || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="absolute inset-0 bg-black/45 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        {uploadingAvatar ? (
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                        ) : (
+                          <Camera className="w-4 h-4 text-white" />
+                        )}
+                      </span>
+                    </button>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                    <div className="min-w-0">
+                      <span className="block font-bold text-xs text-foreground truncate">{displayName}</span>
+                      <span className="block text-[11px] text-muted-foreground truncate">{email}</span>
+                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-accent text-accent-foreground">
+                        {roleLabel}
+                      </span>
+                    </div>
                   </div>
                   <div className="p-1.5">
                     <button

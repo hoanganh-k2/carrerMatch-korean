@@ -119,7 +119,35 @@ export class UploadsController {
     };
   }
 
-  // 4. Stream file ra ngoài cho client (Public)
+  // 4. Upload JD (mô tả công việc) - dành cho recruiter và admin
+  @Post('jd')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('recruiter', 'admin')
+  @UseInterceptors(
+    FileInterceptor(
+      'file',
+      createMulterOptions(
+        'jds',
+        [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+        5 * 1024 * 1024,
+      ), // PDF/DOC/DOCX, max 5MB
+    ),
+  )
+  uploadJd(@UploadedFile() file: any) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn file JD để tải lên');
+    }
+    return {
+      message: 'Tải lên JD thành công',
+      url: `/uploads/file/jds/${file.filename}`,
+    };
+  }
+
+  // 5. Stream file ra ngoài cho client (Public)
   @Get('file/:folder/:filename')
   serveFile(
     @Param('folder') folder: string,
@@ -127,7 +155,7 @@ export class UploadsController {
     @Res() res: any,
   ) {
     // Validate folder
-    if (!['cvs', 'avatars', 'logos'].includes(folder)) {
+    if (!['cvs', 'avatars', 'logos', 'jds'].includes(folder)) {
       throw new BadRequestException('Thư mục file không hợp lệ');
     }
 

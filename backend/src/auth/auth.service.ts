@@ -91,6 +91,7 @@ export class AuthService {
         id: true,
         email: true,
         role: true,
+        avatarUrl: true,
         isActive: true,
         createdAt: true,
         jobUser: {
