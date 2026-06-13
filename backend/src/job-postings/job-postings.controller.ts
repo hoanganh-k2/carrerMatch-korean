@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
 } from '@nestjs/common';
@@ -58,10 +59,26 @@ export class JobPostingsController {
     return this.jobPostingsService.create(createJobPostingDto);
   }
 
-  // Public: Xem danh sách tin tuyển dụng
+  // Public: Xem danh sách tin tuyển dụng (phân trang + lọc server-side)
   @Get()
-  findAll() {
-    return this.jobPostingsService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('location') location?: string,
+    @Query('jobType') jobType?: string,
+    @Query('minTopik') minTopik?: string,
+    @Query('sort') sort?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.jobPostingsService.findAll({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 12,
+      location,
+      jobType,
+      minTopik,
+      sort,
+      status,
+    });
   }
 
   // Public: Xem chi tiết tin tuyển dụng

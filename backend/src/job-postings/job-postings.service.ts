@@ -66,16 +66,69 @@ export class JobPostingsService {
     };
   }
 
-  async findAll() {
+  async findAll(params?: {
+    page?: number;
+    limit?: number;
+    location?: string;
+    jobType?: string;
+    minTopik?: string;
+    sort?: string;
+    status?: string;
+  }) {
+    const page = Math.max(1, params?.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params?.limit ?? 12));
+    const skip = (page - 1) * limit;
+
+    // Bộ lọc động (mặc định không lọc status để recruiter/admin xem được mọi tin)
+    const where: Prisma.JobPostingWhereInput = {};
+    if (params?.status) {
+      where.status = params.status as any;
+    }
+    if (params?.location) {
+      where.location = { contains: params.location, mode: 'insensitive' };
+    }
+    if (params?.jobType) {
+      where.jobType = params.jobType as any;
+    }
+    if (params?.minTopik) {
+      where.minTopikRequired = params.minTopik as any;
+    }
+
+    // Sắp xếp: "field:dir" (mặc định createdAt:desc)
+    let orderBy: Prisma.JobPostingOrderByWithRelationInput = {
+      createdAt: 'desc',
+    };
+    if (params?.sort) {
+      const [field, dir] = params.sort.split(':');
+      const allowed = ['createdAt', 'salaryMax', 'salaryMin', 'viewsCount'];
+      if (allowed.includes(field)) {
+        orderBy = { [field]: dir === 'asc' ? 'asc' : 'desc' };
+      }
+    }
+
     // Bỏ jdEmbedding (vector 768 chiều dạng text ~17KB/tin) để response nhẹ;
     // kèm thông tin công ty cho card hiển thị
-    return this.prisma.jobPosting.findMany({
-      omit: { jdEmbedding: true },
-      include: {
-        company: { select: { companyName: true, logoUrl: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.jobPosting.findMany({
+        where,
+        omit: { jdEmbedding: true },
+        include: {
+          company: { select: { companyName: true, logoUrl: true } },
+        },
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      this.prisma.jobPosting.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(jobId: string): Promise<JobPosting> {

@@ -24,14 +24,6 @@ export interface Job {
   };
 }
 
-export interface Candidate {
-  userId: string;
-  fullName: string;
-  topikLevel: string;
-  skillsExtracted: string[];
-  yearsExperience: number;
-}
-
 // Normalize key formats from backend (supporting both snake_case and camelCase)
 export const normalizeJob = (job: any): Job => {
   return {
@@ -61,11 +53,41 @@ export const normalizeJob = (job: any): Job => {
   };
 };
 
-export async function fetchJobs(): Promise<Job[]> {
-  const res = await fetch(`${BASE_URL}/job-postings`);
+// Kết quả phân trang chung từ backend
+export interface Paged<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface JobListParams {
+  page?: number;
+  limit?: number;
+  location?: string;
+  jobType?: string;
+  minTopik?: string;
+  sort?: string;
+  status?: string;
+}
+
+// Phân trang server-side cho danh sách tin tuyển dụng
+export async function fetchJobsPaged(params: JobListParams = {}): Promise<Paged<Job>> {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+  });
+  const res = await fetch(`${BASE_URL}/job-postings?${qs.toString()}`);
   if (!res.ok) throw new Error('Không thể kết nối đến máy chủ tuyển dụng');
   const data = await res.json();
-  return data.map(normalizeJob);
+  return { ...data, data: (data.data ?? []).map(normalizeJob) };
+}
+
+// Tương thích ngược: trả về mảng Job (lấy 1 trang lớn). Dùng cho các trang chưa phân trang.
+export async function fetchJobs(): Promise<Job[]> {
+  const paged = await fetchJobsPaged({ page: 1, limit: 1000 });
+  return paged.data;
 }
 
 export async function fetchJobById(id: string): Promise<Job> {
@@ -79,13 +101,6 @@ export async function fetchCompanyById(id: string): Promise<any> {
   const res = await fetch(`${BASE_URL}/companies/${id}`);
   if (!res.ok) throw new Error('Không tìm thấy công ty');
   return res.json();
-}
-
-export async function fetchCandidates(): Promise<Candidate[]> {
-  const res = await fetch(`${BASE_URL}/job-users`);
-  if (!res.ok) throw new Error('Không thể kết nối đến máy chủ người dùng');
-  const data = await res.json();
-  return data;
 }
 
 export async function searchSemantic(query: string): Promise<Job[]> {
@@ -118,18 +133,23 @@ export async function queryChatbot(
 }
 
 // ==================== 1. TÌM KIẾM NÂNG CAO ====================
-export async function searchAdvancedJobs(
-  filters: {
-    query?: string;
-    locations?: string[];
-    salaryMin?: number;
-    salaryMax?: number;
-    topikLevel?: string;
-    jobType?: string;
-    skills?: string[];
-  },
+export interface SearchFilters {
+  query?: string;
+  locations?: string[];
+  salaryMin?: number;
+  salaryMax?: number;
+  topikLevel?: string;
+  jobType?: string;
+  skills?: string[];
+  page?: number;
+  limit?: number;
+}
+
+// Tìm kiếm nâng cao có phân trang server-side
+export async function searchAdvancedJobsPaged(
+  filters: SearchFilters,
   token?: string,
-): Promise<Job[]> {
+): Promise<Paged<Job>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -141,7 +161,19 @@ export async function searchAdvancedJobs(
   });
   if (!res.ok) throw new Error('Lọc tìm kiếm thất bại');
   const data = await res.json();
-  return data.map(normalizeJob);
+  return { ...data, data: (data.data ?? []).map(normalizeJob) };
+}
+
+// Tương thích ngược: trả về mảng Job
+export async function searchAdvancedJobs(
+  filters: SearchFilters,
+  token?: string,
+): Promise<Job[]> {
+  const paged = await searchAdvancedJobsPaged(
+    { ...filters, limit: filters.limit ?? 1000 },
+    token,
+  );
+  return paged.data;
 }
 
 export async function fetchSearchSuggestions(): Promise<Array<{ query: string; searchCount: number }>> {
@@ -792,3 +824,153 @@ export function logCareerEvent(data: {
     // Log hành vi không được chặn trải nghiệm chính
   });
 }
+
+// ==================== 19. BẢO MẬT TÀI KHOẢN ====================
+
+async function postJson(path: string, body: any, token?: string): Promise<any> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Yêu cầu thất bại');
+  }
+  return res.json();
+}
+
+export const changePassword = (
+  dto: { currentPassword: string; newPassword: string },
+  token: string,
+) => postJson('/auth/change-password', dto, token);
+
+export const forgotPassword = (email: string) =>
+  postJson('/auth/forgot-password', { email });
+
+export const resetPassword = (token: string, newPassword: string) =>
+  postJson('/auth/reset-password', { token, newPassword });
+
+export async function verifyEmail(token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/auth/verify-email?token=${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Xác minh email thất bại');
+  }
+  return res.json();
+}
+
+export const resendVerifyEmail = (token: string) =>
+  postJson('/auth/resend-verify-email', {}, token);
+
+export async function deleteMyAccount(token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/users/me`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Xóa tài khoản thất bại');
+  return res.json();
+}
+
+// ==================== 20. RÚT ĐƠN ỨNG TUYỂN ====================
+export async function deleteApplication(id: string, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/job-applications/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Rút đơn ứng tuyển thất bại');
+  return res.json();
+}
+
+// ==================== 21. ADMIN: QUẢN LÝ USER & PHÂN QUYỀN ====================
+
+export async function fetchAllUsers(token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/users`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải danh sách người dùng');
+  return res.json();
+}
+
+async function patchAdmin(path: string, body: any, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Cập nhật thất bại');
+  }
+  return res.json();
+}
+
+export const updateUserRole = (id: string, role: string, token: string) =>
+  patchAdmin(`/users/${id}/role`, { role }, token);
+
+export async function setUserActive(id: string, isActive: boolean, token: string): Promise<any> {
+  if (isActive) {
+    return patchAdmin(`/users/${id}/activate`, {}, token);
+  }
+  const res = await fetch(`${BASE_URL}/users/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Khóa tài khoản thất bại');
+  return res.json();
+}
+
+export async function fetchAllPermissions(token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/permissions`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải danh sách quyền');
+  return res.json();
+}
+
+export async function fetchUserPermissions(userId: string, token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/users/${userId}/permissions`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải quyền của người dùng');
+  return res.json();
+}
+
+export const assignPermission = (userId: string, permissionId: string, token: string) =>
+  postJson(`/users/${userId}/permissions`, { permissionId }, token);
+
+export async function revokePermission(userId: string, permId: string, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/users/${userId}/permissions/${permId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Thu hồi quyền thất bại');
+  return res.json();
+}
+
+export const seedPermissions = (token: string) =>
+  postJson('/permissions/seed', {}, token);
+
+// ==================== 22. ADMIN: KIỂM DUYỆT ====================
+
+export async function fetchAllReviewsAdmin(token: string): Promise<any[]> {
+  const res = await fetch(`${BASE_URL}/reviews`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Lỗi tải danh sách đánh giá');
+  return res.json();
+}
+
+export async function deleteReview(id: string, token: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/reviews/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Xóa đánh giá thất bại');
+  return res.json();
+}
+
+// adminDeleteJob dùng lại deleteJobPosting (DELETE /job-postings/:id, role recruiter|admin)
+export const adminDeleteJob = deleteJobPosting;

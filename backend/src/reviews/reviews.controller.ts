@@ -29,6 +29,14 @@ export class ReviewsController {
     return this.reviewsService.create(user.userId, dto);
   }
 
+  // Admin: lấy toàn bộ đánh giá để kiểm duyệt
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  findAll() {
+    return this.reviewsService.findAll();
+  }
+
   // 2. Lấy danh sách đánh giá của công ty (Public)
   @Get('company/:companyId')
   findReviewsByCompany(@Param('companyId') companyId: string) {

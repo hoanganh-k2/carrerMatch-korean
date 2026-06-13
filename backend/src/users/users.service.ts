@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Role } from '@prisma/client';
 import { UpdateUserDto, UpdateJobUserDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -78,6 +83,27 @@ export class UsersService {
       where: { id },
       data: { isActive: false },
       select: { id: true, email: true, isActive: true },
+    });
+  }
+
+  async setActive(id: string, isActive: boolean) {
+    await this.findOne(id);
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: { id: true, email: true, isActive: true },
+    });
+  }
+
+  async updateRole(id: string, role: string) {
+    await this.findOne(id);
+    if (!Object.values(Role).includes(role as Role)) {
+      throw new BadRequestException(`Role không hợp lệ: ${role}`);
+    }
+    return this.prisma.user.update({
+      where: { id },
+      data: { role: role as Role },
+      select: { id: true, email: true, role: true, isActive: true },
     });
   }
 }

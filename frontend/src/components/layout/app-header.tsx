@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Bell, LogIn, LogOut, Trash2, Camera, Loader2 } from 'lucide-react';
+import { Bell, LogIn, LogOut, Trash2, Camera, Loader2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -32,6 +32,9 @@ const NAV_BY_ROLE: Record<string, Array<{ to: string; label: string }>> = {
   admin: [
     { to: '/jobs', label: 'Việc làm' },
     { to: '/admin', label: 'Quản trị' },
+    { to: '/admin/users', label: 'Người dùng' },
+    { to: '/admin/jobs', label: 'Kiểm duyệt tin' },
+    { to: '/admin/reviews', label: 'Đánh giá' },
   ],
 };
 
@@ -333,6 +336,16 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
                     </div>
                   </div>
                   <div className="p-1.5">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/account/settings');
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2 transition-all"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      <span>Cài đặt tài khoản</span>
+                    </button>
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold text-destructive hover:bg-destructive/10 flex items-center gap-2 transition-all"

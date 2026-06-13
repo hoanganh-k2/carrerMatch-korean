@@ -140,4 +140,83 @@ export class MailService {
       return { success: false };
     }
   }
+
+  private wrapEmail(title: string, bodyHtml: string) {
+    return `
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta charset="UTF-8"/></head>
+<body style="font-family:Arial,sans-serif;background:#f9fafb;margin:0;padding:20px;">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+    <div style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);padding:24px;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:22px;">🇰🇷 KBRIDGE</h1>
+      <p style="color:#bfdbfe;margin:4px 0 0;">${title}</p>
+    </div>
+    <div style="padding:24px;">${bodyHtml}</div>
+    <div style="padding:16px 24px;background:#f3f4f6;text-align:center;color:#6b7280;font-size:12px;">
+      Đây là email tự động từ KBRIDGE — Sàn tìm việc IT Tiếng Hàn.
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  async sendPasswordResetEmail(toEmail: string, resetUrl: string) {
+    const html = this.wrapEmail(
+      'Đặt lại mật khẩu',
+      `<p>Xin chào,</p>
+       <p>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn nút bên dưới để tạo mật khẩu mới (liên kết có hiệu lực trong 15 phút):</p>
+       <div style="text-align:center;margin:24px 0;">
+         <a href="${resetUrl}" style="background:#1d4ed8;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;">Đặt lại mật khẩu →</a>
+       </div>
+       <p style="color:#6b7280;font-size:13px;">Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`,
+    );
+
+    try {
+      const { data, error } = await this.resend.emails.send({
+        from: this.from,
+        to: toEmail,
+        subject: '🔐 KBRIDGE: Đặt lại mật khẩu',
+        html,
+      });
+      if (error) {
+        this.logger.error(`Gửi email reset thất bại: ${error.message}`);
+        return { success: false };
+      }
+      this.logger.log(`✅ Đã gửi email reset mật khẩu tới ${toEmail} (id: ${data?.id})`);
+      return { success: true };
+    } catch (err: any) {
+      this.logger.error(`Lỗi Resend reset: ${err.message}`);
+      return { success: false };
+    }
+  }
+
+  async sendVerifyEmail(toEmail: string, verifyUrl: string) {
+    const html = this.wrapEmail(
+      'Xác minh email',
+      `<p>Xin chào,</p>
+       <p>Cảm ơn bạn đã đăng ký KBRIDGE. Nhấn nút bên dưới để xác minh địa chỉ email của bạn:</p>
+       <div style="text-align:center;margin:24px 0;">
+         <a href="${verifyUrl}" style="background:#1d4ed8;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;">Xác minh email →</a>
+       </div>`,
+    );
+
+    try {
+      const { data, error } = await this.resend.emails.send({
+        from: this.from,
+        to: toEmail,
+        subject: '✅ KBRIDGE: Xác minh email của bạn',
+        html,
+      });
+      if (error) {
+        this.logger.error(`Gửi email verify thất bại: ${error.message}`);
+        return { success: false };
+      }
+      this.logger.log(`✅ Đã gửi email xác minh tới ${toEmail} (id: ${data?.id})`);
+      return { success: true };
+    } catch (err: any) {
+      this.logger.error(`Lỗi Resend verify: ${err.message}`);
+      return { success: false };
+    }
+  }
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ShieldCheck,
   Users,
@@ -8,6 +9,7 @@ import {
   Loader2,
   BadgeCheck,
   TrendingUp,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
@@ -109,6 +111,19 @@ export default function AdminDashboardPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Thống kê toàn hệ thống: người dùng, công ty, tin tuyển dụng và xu hướng kỹ năng.
         </p>
+      </div>
+
+      {/* Điều hướng nhanh tới các trang quản trị */}
+      <div className="flex flex-wrap gap-3">
+        <Link to="/admin/users" className="px-4 py-2.5 bg-card border border-border rounded-xl text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
+          <Users className="w-4 h-4 text-primary" /> Quản lý người dùng
+        </Link>
+        <Link to="/admin/jobs" className="px-4 py-2.5 bg-card border border-border rounded-xl text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
+          <Briefcase className="w-4 h-4 text-primary" /> Kiểm duyệt tin
+        </Link>
+        <Link to="/admin/reviews" className="px-4 py-2.5 bg-card border border-border rounded-xl text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-primary" /> Kiểm duyệt đánh giá
+        </Link>
       </div>
 
       {/* System stats */}

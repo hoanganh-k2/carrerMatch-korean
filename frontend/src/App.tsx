@@ -14,6 +14,10 @@ import CompaniesPage from '@/pages/companies';
 import CompanyDetailPage from '@/pages/company-detail';
 import LoginPage from '@/pages/login';
 import RegisterPage from '@/pages/register';
+import ForgotPasswordPage from '@/pages/forgot-password';
+import ResetPasswordPage from '@/pages/reset-password';
+import VerifyEmailPage from '@/pages/verify-email';
+import AccountSettingsPage from '@/pages/account-settings';
 
 import CandidateDashboardPage from '@/pages/candidate/dashboard';
 import RecommendationsPage from '@/pages/candidate/recommendations';
@@ -27,6 +31,9 @@ import RecruiterJobsPage from '@/pages/recruiter/jobs';
 import RecruiterJobDetailPage from '@/pages/recruiter/job-detail';
 
 import AdminDashboardPage from '@/pages/admin/dashboard';
+import AdminUsersPage from '@/pages/admin/users';
+import AdminJobsPage from '@/pages/admin/jobs';
+import AdminReviewsPage from '@/pages/admin/reviews';
 
 export default function App() {
   const { role } = useAuth();
@@ -46,6 +53,12 @@ export default function App() {
         <Route path="/companies/:companyId" element={<CompanyDetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+
+        {/* Tài khoản (mọi role đã đăng nhập) */}
+        <Route path="/account/settings" element={<RequireRole roles={['candidate', 'recruiter', 'admin']}><AccountSettingsPage /></RequireRole>} />
 
         {/* Candidate */}
         <Route path="/candidate" element={<RequireRole roles={['candidate']}><CandidateDashboardPage /></RequireRole>} />
@@ -62,6 +75,9 @@ export default function App() {
 
         {/* Admin */}
         <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboardPage /></RequireRole>} />
+        <Route path="/admin/users" element={<RequireRole roles={['admin']}><AdminUsersPage /></RequireRole>} />
+        <Route path="/admin/jobs" element={<RequireRole roles={['admin']}><AdminJobsPage /></RequireRole>} />
+        <Route path="/admin/reviews" element={<RequireRole roles={['admin']}><AdminReviewsPage /></RequireRole>} />
 
         {/* Fallback */}
         <Route path="*" element={<LandingPage />} />

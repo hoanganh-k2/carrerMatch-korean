@@ -42,7 +42,7 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  // Cập nhật thông tin cơ bản (email) của mình
+  // Cập nhật thông tin cơ bản (email, avatarUrl, isActive) của mình
   @Patch('me')
   updateMe(
     @CurrentUser() user: CurrentUserPayload,
@@ -58,6 +58,28 @@ export class UsersController {
     @Body() dto: UpdateJobUserDto,
   ) {
     return this.usersService.updateProfile(user.userId, dto);
+  }
+
+  // Tự vô hiệu hóa tài khoản của mình
+  @Delete('me')
+  deactivateMe(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.deactivate(user.userId);
+  }
+
+  // Admin: đổi role của user
+  @Patch(':id/role')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  updateRole(@Param('id') id: string, @Body('role') role: string) {
+    return this.usersService.updateRole(id, role);
+  }
+
+  // Admin: kích hoạt lại user
+  @Patch(':id/activate')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  activate(@Param('id') id: string) {
+    return this.usersService.setActive(id, true);
   }
 
   // Admin: deactivate user

@@ -21,6 +21,8 @@ export class SearchJobsDto {
   topikLevel?: TopikLevel;
   jobType?: JobType;
   skills?: string[];
+  page?: number;
+  limit?: number;
 }
 
 @Controller('search')

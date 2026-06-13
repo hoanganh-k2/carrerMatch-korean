@@ -16,9 +16,8 @@ import {
 } from 'lucide-react';
 import {
   Job,
-  fetchJobs,
-  searchSemantic,
-  searchAdvancedJobs,
+  fetchJobsPaged,
+  searchAdvancedJobsPaged,
   fetchSearchSuggestions,
   fetchMySearchHistory,
   logCareerEvent,
@@ -30,11 +29,10 @@ const PAGE_SIZE = 9;
 export default function JobsPage() {
   const { token, role, userId } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,13 +47,82 @@ export default function JobsPage() {
   const [suggestions, setSuggestions] = useState<Array<{ query: string; searchCount: number }>>([]);
   const [searchHistory, setSearchHistory] = useState<any[]>([]);
 
-  // Phân trang
+  // Phân trang server-side
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(jobs.length / PAGE_SIZE);
-  const paginatedJobs = jobs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Tải danh sách việc làm theo trang từ server.
+  // - Khi có từ khóa hoặc lọc lương → dùng /search/jobs (hỗ trợ semantic + nhiều bộ lọc).
+  // - Còn lại (browse + lọc khu vực/topik/hình thức) → dùng /job-postings phân trang.
+  const loadJobs = async (
+    page = 1,
+    overrides?: {
+      query?: string;
+      locations?: string[];
+      topik?: string;
+      jobType?: string;
+      salary?: number | null;
+    },
+  ) => {
+    const q = (overrides?.query ?? searchQuery).trim();
+    const locations = overrides?.locations ?? selectedLocations;
+    const topik = overrides?.topik ?? selectedTopik;
+    const jobType = overrides?.jobType ?? selectedJobType;
+    const salary = overrides?.salary !== undefined ? overrides.salary : salaryFilter;
+
+    setSearching(true);
+    setError(null);
+    try {
+      const useSearchApi = !!q || !!salary || locations.length > 1;
+      if (useSearchApi) {
+        const res = await searchAdvancedJobsPaged(
+          {
+            query: q || undefined,
+            locations: locations.length > 0 ? locations : undefined,
+            salaryMin: salary || undefined,
+            topikLevel: topik !== 'all' ? topik : undefined,
+            jobType: jobType !== 'all' ? jobType : undefined,
+            page,
+            limit: PAGE_SIZE,
+          },
+          token || undefined,
+        );
+        setJobs(res.data);
+        setTotalPages(res.totalPages || 1);
+        setTotalCount(res.total);
+        if (q && token) loadSearchHistoryData();
+      } else {
+        const res = await fetchJobsPaged({
+          page,
+          limit: PAGE_SIZE,
+          location: locations[0],
+          jobType: jobType !== 'all' ? jobType : undefined,
+          minTopik: topik !== 'all' ? topik : undefined,
+          status: 'active',
+        });
+        setJobs(res.data);
+        setTotalPages(res.totalPages || 1);
+        setTotalCount(res.total);
+      }
+      setCurrentPage(page);
+    } catch (err) {
+      console.error(err);
+      setError('Lỗi kết nối API Backend. Hãy đảm bảo NestJS server đang chạy trên cổng 3000.');
+    } finally {
+      setSearching(false);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    loadInitialData();
+    const q = searchParams.get('q');
+    if (q) setSearchQuery(q);
+    loadJobs(1, { query: q ?? '' });
+    fetchSearchSuggestions()
+      .then((s) => setSuggestions(s.slice(0, 5)))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -63,33 +130,6 @@ export default function JobsPage() {
     else setSearchHistory([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-
-  // Handle initial query param ?q=
-  useEffect(() => {
-    const q = searchParams.get('q');
-    if (q && allJobs.length > 0) {
-      setSearchQuery(q);
-      triggerAdvancedSearch(q);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allJobs]);
-
-  const loadInitialData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const normalizedJobs = await fetchJobs();
-      setJobs(normalizedJobs);
-      setAllJobs(normalizedJobs);
-      const searchSugs = await fetchSearchSuggestions();
-      setSuggestions(searchSugs.slice(0, 5));
-    } catch (err) {
-      console.error(err);
-      setError('Lỗi kết nối API Backend. Hãy đảm bảo NestJS server đang chạy trên cổng 3000.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadSearchHistoryData = async () => {
     if (!token) return;
@@ -101,86 +141,46 @@ export default function JobsPage() {
     }
   };
 
-  const triggerAdvancedSearch = async (currentQuery = searchQuery) => {
-    setSearching(true);
-    setError(null);
-    setCurrentPage(1);
-    try {
-      const filterBody = {
-        query: currentQuery.trim() || undefined,
-        locations: selectedLocations.length > 0 ? selectedLocations : undefined,
-        salaryMin: salaryFilter || undefined,
-        topikLevel: selectedTopik !== 'all' ? selectedTopik : undefined,
-        jobType: selectedJobType !== 'all' ? selectedJobType : undefined,
-      };
-      const filteredJobs = await searchAdvancedJobs(filterBody, token || undefined);
-      setJobs(filteredJobs);
-    } catch (err) {
-      console.error('Search error:', err);
-      setError('Lọc tìm kiếm nâng cao thất bại. Đang tải chế độ dự phòng.');
-      setJobs(allJobs);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const handleAISearchSubmit = async (e: React.FormEvent) => {
+  const handleAISearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) {
-      setJobs(allJobs);
-      setCurrentPage(1);
-      return;
-    }
-    setSearching(true);
-    setError(null);
-    setCurrentPage(1);
-    try {
-      const normalizedSearch = await searchSemantic(searchQuery);
-      setJobs(normalizedSearch);
-      if (token) loadSearchHistoryData();
-    } catch (err) {
-      console.error(err);
-      setError('Lỗi AI Vector Search. Đang kích hoạt tìm kiếm lọc từ khóa mặc định.');
-      setJobs(
-        allJobs.filter(
-          (j) =>
-            j.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            j.description.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
-      );
-    } finally {
-      setSearching(false);
-    }
+    loadJobs(1);
   };
 
   const handleQuickFilter = (filter: string) => {
     setActiveFilter(filter);
-    setSelectedLocations([]);
     setSelectedTopik('all');
     setSelectedJobType('all');
     setSalaryFilter(null);
-    setCurrentPage(1);
 
     if (filter === 'all') {
-      setJobs(allJobs);
       setSearchQuery('');
+      setSelectedLocations([]);
+      loadJobs(1, { query: '', locations: [], topik: 'all', jobType: 'all', salary: null });
     } else if (filter === 'brse') {
-      setJobs(allJobs.filter((j) => j.title.toLowerCase().includes('brse') || j.title.toLowerCase().includes('cầu nối')));
+      setSearchQuery('BrSE kỹ sư cầu nối');
+      setSelectedLocations([]);
+      loadJobs(1, { query: 'BrSE kỹ sư cầu nối', locations: [] });
     } else if (filter === 'comtor') {
-      setJobs(allJobs.filter((j) => j.title.toLowerCase().includes('comtor') || j.title.toLowerCase().includes('dịch') || j.title.toLowerCase().includes('phiên dịch')));
+      setSearchQuery('Comtor phiên dịch tiếng Hàn');
+      setSelectedLocations([]);
+      loadJobs(1, { query: 'Comtor phiên dịch tiếng Hàn', locations: [] });
     } else if (filter === 'hanoi') {
-      setJobs(allJobs.filter((j) => j.location.toLowerCase().includes('hà nội')));
+      setSearchQuery('');
+      setSelectedLocations(['Hà Nội']);
+      loadJobs(1, { query: '', locations: ['Hà Nội'] });
     } else if (filter === 'seoul') {
-      setJobs(allJobs.filter((j) => j.location.toLowerCase().includes('seoul')));
+      setSearchQuery('');
+      setSelectedLocations(['Seoul']);
+      loadJobs(1, { query: '', locations: ['Seoul'] });
     }
   };
 
   const handleLocationTagToggle = (loc: string) => {
-    setSelectedLocations((prev) => {
-      const updated = prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc];
-      setTimeout(() => triggerAdvancedSearch(), 0);
-      return updated;
-    });
+    const updated = selectedLocations.includes(loc)
+      ? selectedLocations.filter((l) => l !== loc)
+      : [...selectedLocations, loc];
+    setSelectedLocations(updated);
+    loadJobs(1, { locations: updated });
   };
 
   const handleOpenJob = (job: Job, position: number) => {
@@ -264,7 +264,7 @@ export default function JobsPage() {
                   key={sug.query}
                   onClick={() => {
                     setSearchQuery(sug.query);
-                    triggerAdvancedSearch(sug.query);
+                    loadJobs(1, { query: sug.query });
                   }}
                   className="px-2.5 py-1 rounded-full bg-card hover:bg-accent border border-border text-muted-foreground hover:text-accent-foreground transition-colors"
                 >
@@ -287,7 +287,7 @@ export default function JobsPage() {
                     key={`${h.eventId}-${idx}`}
                     onClick={() => {
                       setSearchQuery(h.query);
-                      triggerAdvancedSearch(h.query);
+                      loadJobs(1, { query: h.query });
                     }}
                     className="px-2.5 py-1 rounded-full bg-secondary hover:bg-accent border border-border text-muted-foreground hover:text-accent-foreground transition-colors"
                   >
@@ -332,7 +332,7 @@ export default function JobsPage() {
                     value={selectedTopik}
                     onChange={(e) => {
                       setSelectedTopik(e.target.value);
-                      setTimeout(() => triggerAdvancedSearch(), 0);
+                      loadJobs(1, { topik: e.target.value });
                     }}
                     className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
                   >
@@ -356,7 +356,7 @@ export default function JobsPage() {
                         type="button"
                         onClick={() => {
                           setSelectedJobType(type);
-                          setTimeout(() => triggerAdvancedSearch(), 0);
+                          loadJobs(1, { jobType: type });
                         }}
                         className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                           selectedJobType === type
@@ -379,7 +379,7 @@ export default function JobsPage() {
                         type="button"
                         onClick={() => {
                           setSalaryFilter(sal);
-                          setTimeout(() => triggerAdvancedSearch(), 0);
+                          loadJobs(1, { salary: sal });
                         }}
                         className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                           salaryFilter === sal
@@ -433,7 +433,7 @@ export default function JobsPage() {
           </div>
 
           <div className="text-xs text-muted-foreground font-semibold">
-            <span className="text-primary font-extrabold">{jobs.length}</span> tin tuyển dụng
+            <span className="text-primary font-extrabold">{totalCount}</span> tin tuyển dụng
             {totalPages > 1 && (
               <span className="ml-2 text-muted-foreground/70">— Trang {currentPage}/{totalPages}</span>
             )}
@@ -454,7 +454,7 @@ export default function JobsPage() {
               </div>
             ))}
           </div>
-        ) : paginatedJobs.length === 0 ? (
+        ) : jobs.length === 0 ? (
           <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
             <HelpCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
             <h3 className="font-extrabold text-lg text-foreground mb-2">Không tìm thấy công việc nào</h3>
@@ -464,7 +464,7 @@ export default function JobsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedJobs.map((job, index) => (
+            {jobs.map((job, index) => (
               <JobCard key={job.id} job={job} onClick={() => handleOpenJob(job, (currentPage - 1) * PAGE_SIZE + index)} />
             ))}
           </div>
@@ -476,8 +476,8 @@ export default function JobsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
+              onClick={() => loadJobs(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1 || searching}
               className="rounded-lg gap-1.5 text-xs font-semibold"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -498,7 +498,7 @@ export default function JobsPage() {
                   ) : (
                     <button
                       key={p}
-                      onClick={() => setCurrentPage(p as number)}
+                      onClick={() => loadJobs(p as number)}
                       className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
                         currentPage === p
                           ? 'bg-primary text-primary-foreground shadow-sm'
@@ -514,8 +514,8 @@ export default function JobsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => loadJobs(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages || searching}
               className="rounded-lg gap-1.5 text-xs font-semibold"
             >
               Tiếp

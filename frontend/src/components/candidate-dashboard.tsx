@@ -26,7 +26,8 @@ import {
   fetchMySubscriptions,
   createSubscription,
   deleteSubscription,
-  triggerEmailAlerts
+  triggerEmailAlerts,
+  deleteApplication
 } from '@/lib/api';
 
 interface CandidateDashboardProps {
@@ -89,6 +90,23 @@ export function CandidateDashboard({ token, role }: CandidateDashboardProps) {
       setError('Lỗi kết nối khi tải dữ liệu dashboard cá nhân.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Rút đơn ứng tuyển
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+  const handleWithdrawApplication = async (id: string) => {
+    if (!token) return;
+    if (!window.confirm('Bạn có chắc muốn rút đơn ứng tuyển này? Hành động không thể hoàn tác.')) return;
+    setWithdrawingId(id);
+    try {
+      await deleteApplication(id, token);
+      setApplications((prev) => prev.filter((a) => a.applicationId !== id));
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Rút đơn thất bại');
+    } finally {
+      setWithdrawingId(null);
     }
   };
 
@@ -341,6 +359,20 @@ export function CandidateDashboard({ token, role }: CandidateDashboardProps) {
                         <Badge variant="outline" className={`py-1 rounded-md text-[10.5px] font-bold ${statusDetails.color}`}>
                           {statusDetails.label}
                         </Badge>
+                        {['applied', 'screening'].includes(app.status) && (
+                          <button
+                            onClick={() => handleWithdrawApplication(app.applicationId)}
+                            disabled={withdrawingId === app.applicationId}
+                            title="Rút đơn ứng tuyển"
+                            className="p-1.5 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 shrink-0"
+                          >
+                            {withdrawingId === app.applicationId ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

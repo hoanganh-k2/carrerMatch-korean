@@ -36,6 +36,8 @@ export class SearchService {
       topikLevel?: TopikLevel;
       jobType?: JobType;
       skills?: string[];
+      page?: number;
+      limit?: number;
     },
     userId?: string,
   ) {
@@ -48,6 +50,17 @@ export class SearchService {
       jobType,
       skills,
     } = params;
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params.limit ?? 12));
+
+    // Phân trang in-memory: do xếp hạng ngữ nghĩa cần toàn bộ tập đã lọc
+    const paginate = <T>(items: T[]) => ({
+      data: items.slice((page - 1) * limit, (page - 1) * limit + limit),
+      total: items.length,
+      page,
+      limit,
+      totalPages: Math.ceil(items.length / limit),
+    });
 
     // Lọc cơ bản
     const where: Prisma.JobPostingWhereInput = {
@@ -142,11 +155,16 @@ export class SearchService {
       });
 
       // Sắp xếp giảm dần theo độ tương đồng ngữ nghĩa
-      return scoredJobs.sort((a, b) => b.similarityScore - a.similarityScore);
+      scoredJobs.sort((a, b) => b.similarityScore - a.similarityScore);
+      return paginate(scoredJobs);
     }
 
     // Nếu không có query, sắp xếp mặc định theo mới nhất
-    return jobs;
+    jobs.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    return paginate(jobs);
   }
 
   // 2. Lấy lịch sử tìm kiếm gần nhất của user

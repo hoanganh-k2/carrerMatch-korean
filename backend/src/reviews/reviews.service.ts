@@ -76,6 +76,34 @@ export class ReviewsService {
     });
   }
 
+  // Admin: lấy toàn bộ đánh giá kèm thông tin công ty & người đánh giá
+  async findAll() {
+    const reviews = await this.prisma.companyReview.findMany({
+      include: {
+        company: { select: { companyName: true, logoUrl: true } },
+        candidate: {
+          select: {
+            email: true,
+            jobUser: { select: { fullName: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reviews.map((r) => ({
+      id: r.id,
+      companyId: r.companyId,
+      companyName: r.company?.companyName ?? '',
+      rating: r.rating,
+      reviewText: r.reviewText,
+      isAnonymous: r.isAnonymous,
+      reviewerName: r.candidate?.jobUser?.fullName || r.candidate?.email || 'Ứng viên',
+      reviewerEmail: r.candidate?.email ?? '',
+      createdAt: r.createdAt,
+    }));
+  }
+
   // 2. Lấy danh sách đánh giá của một công ty và điểm trung bình
   async findReviewsByCompany(companyId: string) {
     const company = await this.prisma.company.findUnique({

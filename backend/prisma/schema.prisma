@@ -66,6 +66,13 @@ model User {
   role         Role     @default(candidate)
   avatarUrl    String?  @map("avatar_url")
   isActive     Boolean  @default(true) @map("is_active")
+
+  // Bảo mật: reset mật khẩu & xác minh email
+  resetToken       String?   @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
+  isEmailVerified  Boolean   @default(false) @map("is_email_verified")
+  emailVerifyToken String?   @map("email_verify_token")
+
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
