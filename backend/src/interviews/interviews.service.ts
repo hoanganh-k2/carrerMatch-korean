@@ -7,14 +7,43 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { InterviewStatus } from '@prisma/client';
+import {
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
+// LƯU Ý: ValidationPipe toàn cục bật { whitelist: true } → field không có decorator
+// class-validator sẽ bị loại bỏ khỏi body. Bắt buộc khai báo decorator cho mọi field.
 export class CreateInterviewDto {
+  @IsString()
   applicationId: string;
+
+  @IsString()
   title: string;
+
+  @IsString()
+  @IsOptional()
   description?: string;
-  scheduledAt: string | Date;
+
+  @IsDateString()
+  scheduledAt: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
   durationMinutes?: number;
+
+  @IsString()
+  @IsOptional()
   meetingLink?: string;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
 }
 

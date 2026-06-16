@@ -55,4 +55,12 @@ export class SubscriptionsController {
   triggerSendAlerts() {
     return this.subscriptionsService.sendMatchingJobAlerts();
   }
+
+  // 5. Candidate tự kích hoạt quét + gửi email cho RIÊNG các đăng ký của mình (nút Demo)
+  @Post('trigger-my-alerts')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('candidate')
+  triggerMyAlerts(@CurrentUser() user: CurrentUserPayload) {
+    return this.subscriptionsService.sendMatchingJobAlerts(user.userId);
+  }
 }

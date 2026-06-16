@@ -8,10 +8,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { TopikLevel } from '@prisma/client';
 import { meetsTopikRequirement } from '../shared/topik.utils';
+import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 
+// LƯU Ý: ValidationPipe toàn cục bật { whitelist: true } → field không có decorator
+// class-validator sẽ bị loại bỏ khỏi body. Bắt buộc khai báo decorator cho mọi field.
 export class CreateSubscriptionDto {
+  @IsArray()
+  @IsString({ each: true })
   skills: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
   locations?: string[];
+
+  @IsEnum(TopikLevel)
+  @IsOptional()
   topikLevel?: TopikLevel;
 }
 
@@ -77,14 +89,17 @@ export class SubscriptionsService {
     });
   }
 
-  // 4. Quét việc làm phù hợp và gửi Email
-  async sendMatchingJobAlerts() {
+  // 4. Quét việc làm phù hợp và gửi Email.
+  // Nếu truyền userId → chỉ quét đăng ký của user đó (dùng cho nút Demo của candidate);
+  // không truyền → quét toàn hệ thống (cron hàng tuần, admin).
+  async sendMatchingJobAlerts(userId?: string) {
     this.logger.log(
       '🚀 Bắt đầu quét việc làm phù hợp cho các đăng ký nhận tin...',
     );
 
-    // Lấy tất cả subscriptions kèm thông tin ứng viên
+    // Lấy subscriptions kèm thông tin ứng viên
     const subscriptions = await this.prisma.subscription.findMany({
+      where: userId ? { userId } : undefined,
       include: {
         user: {
           select: {

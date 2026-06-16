@@ -68,7 +68,11 @@ export class SearchService {
     };
 
     if (locations && locations.length > 0) {
-      where.location = { in: locations };
+      // Dữ liệu location dạng "Seoul (Gangnam-gu)", "Hà Nội (Cầu Giấy)"...
+      // còn FE gửi tên rút gọn ("Seoul", "Hà Nội") nên dùng contains thay vì khớp chính xác.
+      where.OR = locations.map((loc) => ({
+        location: { contains: loc, mode: 'insensitive' as const },
+      }));
     }
 
     if (salaryMin !== undefined) {

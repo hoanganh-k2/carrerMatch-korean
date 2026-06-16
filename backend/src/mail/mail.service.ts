@@ -6,10 +6,49 @@ export class MailService {
   private readonly logger = new Logger('MailService');
   private readonly resend: Resend;
   private readonly from: string;
+  // Dev: không gọi Resend (tránh giới hạn domain chưa verify), coi như gửi thành công.
+  private readonly isDev = process.env.NODE_ENV !== 'production';
 
   constructor() {
     this.resend = new Resend(process.env.RESEND_API_KEY);
     this.from = process.env.MAIL_FROM ?? 'KBRIDGE <noreply@kbridge.vn>';
+  }
+
+  // Điểm gửi email dùng chung. Ở dev sẽ bỏ qua Resend và trả về thành công.
+  private async deliver(opts: {
+    to: string;
+    subject: string;
+    html: string;
+    label: string;
+  }): Promise<{ success: boolean; id?: string; error?: string }> {
+    if (this.isDev) {
+      this.logger.log(
+        `[DEV] Bỏ qua gửi email "${opts.label}" tới ${opts.to} (đặt NODE_ENV=production để gửi thật).`,
+      );
+      return { success: true, id: 'dev-skip' };
+    }
+
+    try {
+      const { data, error } = await this.resend.emails.send({
+        from: this.from,
+        to: opts.to,
+        subject: opts.subject,
+        html: opts.html,
+      });
+      if (error) {
+        this.logger.error(
+          `Gửi email "${opts.label}" thất bại tới ${opts.to}: ${error.message}`,
+        );
+        return { success: false, error: error.message };
+      }
+      this.logger.log(
+        `✅ Đã gửi email "${opts.label}" tới ${opts.to} (id: ${data?.id})`,
+      );
+      return { success: true, id: data?.id };
+    } catch (err: any) {
+      this.logger.error(`Lỗi Resend (${opts.label}): ${err.message}`);
+      return { success: false, error: err.message };
+    }
   }
 
   async sendJobAlertEmail(
@@ -66,25 +105,12 @@ export class MailService {
 </body>
 </html>`;
 
-    try {
-      const { data, error } = await this.resend.emails.send({
-        from: this.from,
-        to: toEmail,
-        subject: `🇰🇷 KBRIDGE: ${jobs.length} việc làm IT mới phù hợp với bạn`,
-        html,
-      });
-
-      if (error) {
-        this.logger.error(`Gửi email thất bại tới ${toEmail}: ${error.message}`);
-        return { success: false, error: error.message };
-      }
-
-      this.logger.log(`✅ Đã gửi email job alert tới ${toEmail} (id: ${data?.id})`);
-      return { success: true, id: data?.id };
-    } catch (err: any) {
-      this.logger.error(`Lỗi Resend: ${err.message}`);
-      return { success: false, error: err.message };
-    }
+    return this.deliver({
+      to: toEmail,
+      subject: `🇰🇷 KBRIDGE: ${jobs.length} việc làm IT mới phù hợp với bạn`,
+      html,
+      label: 'job alert',
+    });
   }
 
   async sendInterviewNotification(
@@ -120,25 +146,13 @@ export class MailService {
 </body>
 </html>`;
 
-    try {
-      const { data, error } = await this.resend.emails.send({
-        from: this.from,
-        to: toEmail,
-        subject: `📅 KBRIDGE: Lịch phỏng vấn - ${jobTitle}`,
-        html,
-      });
-
-      if (error) {
-        this.logger.error(`Gửi email interview thất bại: ${error.message}`);
-        return { success: false };
-      }
-
-      this.logger.log(`✅ Đã gửi email phỏng vấn tới ${toEmail} (id: ${data?.id})`);
-      return { success: true };
-    } catch (err: any) {
-      this.logger.error(`Lỗi Resend interview: ${err.message}`);
-      return { success: false };
-    }
+    const result = await this.deliver({
+      to: toEmail,
+      subject: `📅 KBRIDGE: Lịch phỏng vấn - ${jobTitle}`,
+      html,
+      label: 'interview',
+    });
+    return { success: result.success };
   }
 
   private wrapEmail(title: string, bodyHtml: string) {
@@ -172,23 +186,13 @@ export class MailService {
        <p style="color:#6b7280;font-size:13px;">Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`,
     );
 
-    try {
-      const { data, error } = await this.resend.emails.send({
-        from: this.from,
-        to: toEmail,
-        subject: '🔐 KBRIDGE: Đặt lại mật khẩu',
-        html,
-      });
-      if (error) {
-        this.logger.error(`Gửi email reset thất bại: ${error.message}`);
-        return { success: false };
-      }
-      this.logger.log(`✅ Đã gửi email reset mật khẩu tới ${toEmail} (id: ${data?.id})`);
-      return { success: true };
-    } catch (err: any) {
-      this.logger.error(`Lỗi Resend reset: ${err.message}`);
-      return { success: false };
-    }
+    const result = await this.deliver({
+      to: toEmail,
+      subject: '🔐 KBRIDGE: Đặt lại mật khẩu',
+      html,
+      label: 'reset mật khẩu',
+    });
+    return { success: result.success };
   }
 
   async sendVerifyEmail(toEmail: string, verifyUrl: string) {
@@ -201,22 +205,12 @@ export class MailService {
        </div>`,
     );
 
-    try {
-      const { data, error } = await this.resend.emails.send({
-        from: this.from,
-        to: toEmail,
-        subject: '✅ KBRIDGE: Xác minh email của bạn',
-        html,
-      });
-      if (error) {
-        this.logger.error(`Gửi email verify thất bại: ${error.message}`);
-        return { success: false };
-      }
-      this.logger.log(`✅ Đã gửi email xác minh tới ${toEmail} (id: ${data?.id})`);
-      return { success: true };
-    } catch (err: any) {
-      this.logger.error(`Lỗi Resend verify: ${err.message}`);
-      return { success: false };
-    }
+    const result = await this.deliver({
+      to: toEmail,
+      subject: '✅ KBRIDGE: Xác minh email của bạn',
+      html,
+      label: 'xác minh email',
+    });
+    return { success: result.success };
   }
 }

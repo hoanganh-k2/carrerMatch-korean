@@ -5,11 +5,33 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
+// LƯU Ý: ValidationPipe toàn cục bật { whitelist: true } → field không có decorator
+// class-validator sẽ bị loại bỏ khỏi body. Bắt buộc khai báo decorator cho mọi field.
 export class CreateReviewDto {
+  @IsString()
   companyId: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
   rating: number;
+
+  @IsString()
   reviewText: string;
+
+  @IsBoolean()
+  @IsOptional()
   isAnonymous?: boolean;
 }
 

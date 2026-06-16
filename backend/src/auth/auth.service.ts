@@ -22,6 +22,10 @@ export class AuthService {
   private readonly frontendUrl =
     process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
+  // Môi trường dev: tự động xác minh email và bỏ qua việc gửi mail
+  // (tránh phụ thuộc domain Resend đã verify). Production vẫn gửi email thật.
+  private readonly isDev = process.env.NODE_ENV !== 'production';
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -53,15 +57,19 @@ export class AuthService {
         email: dto.email,
         passwordHash,
         role,
-        emailVerifyToken: this.hashToken(verifyTokenRaw),
+        // Dev: tự động xác minh để không phụ thuộc email; Prod: chờ verify qua email
+        isEmailVerified: this.isDev,
+        emailVerifyToken: this.isDev ? null : this.hashToken(verifyTokenRaw),
       },
     });
 
-    // Gửi email xác minh (không chặn nếu lỗi)
-    void this.mailService.sendVerifyEmail(
-      user.email,
-      `${this.frontendUrl}/verify-email?token=${verifyTokenRaw}`,
-    );
+    // Gửi email xác minh (không chặn nếu lỗi). Bỏ qua ở môi trường dev.
+    if (!this.isDev) {
+      void this.mailService.sendVerifyEmail(
+        user.email,
+        `${this.frontendUrl}/verify-email?token=${verifyTokenRaw}`,
+      );
+    }
 
     // 4. Tạo profile theo role
     if (role === 'candidate') {

@@ -415,8 +415,8 @@ export default function RecruiterJobDetailPage() {
         <div className="space-y-4">
           <p className="text-xs text-muted-foreground bg-accent/60 border border-border rounded-xl p-3.5 leading-relaxed">
             <Sparkles className="w-3.5 h-3.5 text-primary inline mr-1 -mt-0.5" />
-            AI quét toàn bộ ứng viên đang "Open to work", so khớp vector kỹ năng của họ với JD của
-            tin này và xếp hạng kèm giải thích — kể cả khi họ chưa nộp đơn.
+            AI so khớp vector kỹ năng của các ứng viên đã nộp đơn vào tin này với JD và xếp hạng
+            kèm giải thích, giúp bạn ưu tiên hồ sơ phù hợp nhất.
           </p>
 
           {matchesLoading ? (

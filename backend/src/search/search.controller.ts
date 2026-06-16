@@ -7,21 +7,65 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { SearchService } from './search.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 import { TopikLevel, JobType } from '@prisma/client';
 
+// LƯU Ý: ValidationPipe toàn cục bật { whitelist: true } nên mọi field KHÔNG có
+// decorator class-validator sẽ bị loại bỏ khỏi DTO. Vì vậy tất cả các field dưới
+// đây bắt buộc phải khai báo decorator, nếu không request body sẽ bị strip rỗng.
 export class SearchJobsDto {
+  @IsOptional()
+  @IsString()
   query?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   locations?: string[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   salaryMin?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   salaryMax?: number;
+
+  @IsOptional()
+  @IsEnum(TopikLevel)
   topikLevel?: TopikLevel;
+
+  @IsOptional()
+  @IsEnum(JobType)
   jobType?: JobType;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   skills?: string[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   limit?: number;
 }
 

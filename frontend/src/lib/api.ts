@@ -266,7 +266,7 @@ export async function deleteSubscription(id: string, token: string): Promise<any
 }
 
 export async function triggerEmailAlerts(token: string): Promise<any> {
-  const res = await fetch(`${BASE_URL}/subscriptions/trigger-send-alerts`, {
+  const res = await fetch(`${BASE_URL}/subscriptions/trigger-my-alerts`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });

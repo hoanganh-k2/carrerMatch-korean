@@ -232,14 +232,16 @@ export class JobPostingsService {
     }
 
     try {
-      // 2. Quét và tính toán độ tương đồng với skills_vector của các ứng viên (JobUser)
+      // 2. Chỉ xếp hạng các ứng viên ĐÃ NỘP ĐƠN vào tin này (JOIN job_applications),
+      //    tính độ tương đồng skills_vector của họ với JD.
       const matchedCandidates = await this.prisma.$queryRaw`
         SELECT
           ju.user_id, ju.full_name, ju.topik_level, ju.years_experience, ju.skills_extracted,
           (1 - (ju.skills_vector::vector <=> (SELECT jd_embedding FROM job_postings WHERE job_id = ${jobId})::vector)) AS semantic_score
         FROM job_users ju
         JOIN users u ON u.id = ju.user_id
-        WHERE u.role = 'candidate' AND ju.open_to_work = true AND ju.skills_vector IS NOT NULL
+        JOIN job_applications ja ON ja.candidate_id = ju.user_id AND ja.job_id = ${jobId}
+        WHERE u.role = 'candidate' AND ju.skills_vector IS NOT NULL
         ORDER BY ju.skills_vector::vector <=> (SELECT jd_embedding FROM job_postings WHERE job_id = ${jobId})::vector ASC
         LIMIT ${limit};
       `;
@@ -272,7 +274,10 @@ export class JobPostingsService {
     } catch (err: any) {
       if (err.message?.includes('vector') || err.code === 'P2010') {
         const candidates = await this.prisma.jobUser.findMany({
-          where: { openToWork: true, user: { role: 'candidate' } },
+          where: {
+            user: { role: 'candidate' },
+            applications: { some: { jobId } },
+          },
         });
 
         let jobVector: number[] = [];
