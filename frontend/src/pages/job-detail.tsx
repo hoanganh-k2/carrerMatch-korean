@@ -34,6 +34,7 @@ import {
   Job,
 } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
+import { ShareButtons } from '@/components/share-buttons';
 
 const formatTopik = (level: string) => {
   if (level?.startsWith('TOPIK_II_LEVEL_')) return `TOPIK II - Cấp ${level.replace('TOPIK_II_LEVEL_', '')}`;
@@ -269,17 +270,20 @@ export default function JobDetailPage() {
                   </Link>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={bookmarkLoading}
-                onClick={handleBookmarkToggle}
-                className={`w-10 h-10 rounded-xl border border-border shrink-0 transition-all ${
-                  isBookmarked ? 'text-amber-500 bg-yellow-500/10 border-yellow-500/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                }`}
-              >
-                {isBookmarked ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <ShareButtons kind="jobs" id={job.id} title={job.title} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={bookmarkLoading}
+                  onClick={handleBookmarkToggle}
+                  className={`w-10 h-10 rounded-xl border border-border shrink-0 transition-all ${
+                    isBookmarked ? 'text-amber-500 bg-yellow-500/10 border-yellow-500/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {isBookmarked ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
+                </Button>
+              </div>
             </div>
 
             {/* Info grid */}

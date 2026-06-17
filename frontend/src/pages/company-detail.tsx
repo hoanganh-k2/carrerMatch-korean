@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, MapPin, Users, Globe, Star, Loader2, AlertCircle, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JobCard } from '@/components/job-card';
+import { ShareButtons } from '@/components/share-buttons';
 import { fetchCompanyById, fetchCompanyReviews, fetchJobs, getUploadedFileUrl } from '@/lib/api';
 
 export default function CompanyDetailPage() {
@@ -130,6 +131,8 @@ export default function CompanyDetailPage() {
               )}
             </div>
           </div>
+
+          <ShareButtons kind="companies" id={companyId!} title={company.companyName} />
         </div>
 
         {company.description && (

@@ -29,6 +29,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MailModule } from './mail/mail.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ShareModule } from './share/share.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     ReviewsModule,
     MailModule,
     SubscriptionsModule,
+    ShareModule,
   ],
   controllers: [AppController],
   providers: [AppService],

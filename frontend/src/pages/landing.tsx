@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Building2, Users, Briefcase, ArrowRight, Globe, Brain, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { QuickMatch } from '@/components/quick-match';
 import { useAuth } from '@/context/auth-context';
 
 export default function LandingPage() {
@@ -52,6 +53,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Quick Match — tìm việc cho khách, không cần đăng nhập */}
+      <QuickMatch />
 
       {/* Stats */}
       <section className="py-14 border-b border-border bg-card">

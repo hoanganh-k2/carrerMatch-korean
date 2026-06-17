@@ -8,6 +8,7 @@ import { RequireRole } from '@/components/guards/require-role';
 import { useAuth, homePathForRole, UserRole } from '@/context/auth-context';
 
 import LandingPage from '@/pages/landing';
+import { QuickMatch } from '@/components/quick-match';
 import JobsPage from '@/pages/jobs';
 import JobDetailPage from '@/pages/job-detail';
 import CompaniesPage from '@/pages/companies';
@@ -47,6 +48,7 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/quick-match" element={<QuickMatch />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:jobId" element={<JobDetailPage />} />
         <Route path="/companies" element={<CompaniesPage />} />
