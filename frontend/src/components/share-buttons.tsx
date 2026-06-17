@@ -14,15 +14,18 @@ export function ShareButtons({
   kind,
   id,
   title,
+  shareUrl: shareUrlProp,
 }: {
-  kind: ShareKind;
-  id: string;
+  kind?: ShareKind;
+  id?: string;
   title: string;
+  /** Nếu truyền sẵn link đầy đủ thì dùng thẳng (vd link readiness có query) */
+  shareUrl?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = `${API_URL}/share/${kind}/${id}`;
+  const shareUrl = shareUrlProp ?? `${API_URL}/share/${kind}/${id}`;
 
   const nativeShare = async () => {
     // Web Share API: trên mobile mở sẵn Zalo / KakaoTalk / Messenger của máy

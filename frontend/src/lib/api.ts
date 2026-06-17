@@ -421,6 +421,20 @@ export async function loginApi(dto: any): Promise<any> {
   return res.json();
 }
 
+// Đăng nhập bằng Google: gửi ID token (credential) từ Google Identity Services
+export async function googleLoginApi(credential: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Đăng nhập Google thất bại');
+  }
+  return res.json();
+}
+
 export async function registerApi(dto: any): Promise<any> {
   const res = await fetch(`${BASE_URL}/auth/register`, {
     method: 'POST',

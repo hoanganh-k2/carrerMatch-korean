@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
@@ -25,6 +26,11 @@ export class AuthService {
   // Môi trường dev: tự động xác minh email và bỏ qua việc gửi mail
   // (tránh phụ thuộc domain Resend đã verify). Production vẫn gửi email thật.
   private readonly isDev = process.env.NODE_ENV !== 'production';
+
+  // Client xác thực ID token của Google Identity Services
+  private readonly googleClient = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+  );
 
   constructor(
     private readonly prisma: PrismaService,
@@ -114,6 +120,64 @@ export class AuthService {
     }
 
     // 3. Trả về JWT
+    return this.generateTokens(user.id, user.email, user.role);
+  }
+
+  // Đăng nhập bằng Google: verify ID token rồi tìm-hoặc-tạo tài khoản theo email
+  async googleLogin(credential: string) {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      throw new BadRequestException(
+        'Đăng nhập Google chưa được cấu hình (thiếu GOOGLE_CLIENT_ID)',
+      );
+    }
+
+    let email: string | undefined;
+    let name: string | undefined;
+    let picture: string | undefined;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      email = payload?.email;
+      name = payload?.name;
+      picture = payload?.picture;
+    } catch {
+      throw new UnauthorizedException('Token Google không hợp lệ');
+    }
+
+    if (!email) {
+      throw new UnauthorizedException('Không lấy được email từ tài khoản Google');
+    }
+
+    // Tìm user theo email; nếu chưa có thì tạo mới (liên kết theo email)
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // User Google không dùng mật khẩu — đặt hash ngẫu nhiên cho cột bắt buộc
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          role: 'candidate',
+          isEmailVerified: true, // Google đã xác minh email
+          avatarUrl: picture ?? null,
+        },
+      });
+      await this.prisma.jobUser.create({
+        data: {
+          userId: user.id,
+          fullName: name || email.split('@')[0],
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
+    }
+
     return this.generateTokens(user.id, user.email, user.role);
   }
 

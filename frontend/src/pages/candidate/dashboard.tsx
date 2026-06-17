@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Briefcase, Bookmark, FileText, Gauge, Sparkles } from 'lucide-react';
 import { CandidateDashboard } from '@/components/candidate-dashboard';
+import { ReadinessCard } from '@/components/readiness-card';
 import { useAuth } from '@/context/auth-context';
-import { fetchCandidateDashboard } from '@/lib/api';
+import { fetchCandidateDashboard, fetchMyJobUserProfile } from '@/lib/api';
+import { computeReadiness, ReadinessResult } from '@/lib/readiness';
 
 /** Thẻ số liệu tổng quan */
 function StatCard({
@@ -34,12 +36,27 @@ function StatCard({
 export default function CandidateDashboardPage() {
   const { token, role, displayName } = useAuth();
   const [stats, setStats] = useState<any>(null);
+  const [readiness, setReadiness] = useState<ReadinessResult | null>(null);
 
   useEffect(() => {
     if (!token) return;
     fetchCandidateDashboard(token)
       .then(setStats)
       .catch((err) => console.error('Lỗi tải thống kê dashboard:', err));
+
+    fetchMyJobUserProfile(token)
+      .then((p) =>
+        setReadiness(
+          computeReadiness({
+            topikLevel: p.topikLevel,
+            skillCount: (p.skillsExtracted ?? []).length,
+            yearsExperience: p.yearsExperience,
+            isBrSE: p.isBrSE,
+            hasKoreanRole: !!p.targetKoreanRole,
+          }),
+        ),
+      )
+      .catch((err) => console.error('Lỗi tải hồ sơ cho thẻ readiness:', err));
   }, [token]);
 
   return (
@@ -85,6 +102,36 @@ export default function CandidateDashboardPage() {
             }
             to="/candidate/profile"
           />
+        </div>
+      )}
+
+      {/* Thẻ "Mức độ sẵn sàng thị trường Hàn" — chia sẻ được */}
+      {readiness && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <ReadinessCard result={readiness} name={displayName || undefined} />
+          <div className="p-6 bg-card border border-border rounded-2xl">
+            <h3 className="font-bold text-foreground flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Tăng điểm sẵn sàng của bạn
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+              Cập nhật trình độ TOPIK, bổ sung kỹ năng và kinh nghiệm để leo hạng — rồi khoe điểm với bạn bè!
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                to="/candidate/profile"
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
+              >
+                Cập nhật hồ sơ
+              </Link>
+              <Link
+                to="/readiness"
+                className="px-4 py-2 rounded-xl border border-border text-xs font-bold text-foreground hover:border-primary/40 transition-colors"
+              >
+                Xem trang đầy đủ
+              </Link>
+            </div>
+          </div>
         </div>
       )}
 

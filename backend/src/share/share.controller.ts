@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req, Res } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -109,6 +109,28 @@ export class ShareController {
     });
   }
 
+  // Thẻ "Mức độ sẵn sàng thị trường Hàn" — stateless, điểm nằm trong query
+  @Get('readiness')
+  shareReadiness(
+    @Query('score') scoreRaw: string,
+    @Query('name') nameRaw: string,
+    @Res() res: Response,
+  ) {
+    const score = clampScore(scoreRaw);
+    const subject = oneLine(nameRaw || '').slice(0, 40) || 'Tôi';
+    const rankTitle = readinessRankTitle(score);
+    const redirect = `${this.frontendUrl}/readiness?score=${score}`;
+
+    return this.sendHtml(res, {
+      title: `${subject} sẵn sàng ${score}% cho thị trường Hàn 🇰🇷 — ${rankTitle}`,
+      description:
+        'Bạn được bao nhiêu %? Thử ngay "Mức độ sẵn sàng thị trường Hàn" trên KBRIDGE và khoe với bạn bè nhé!',
+      image: `${this.frontendUrl}/favicon.ico`,
+      url: redirect,
+      redirect,
+    });
+  }
+
   private sendHtml(
     res: Response,
     data: {
@@ -136,6 +158,21 @@ function escapeHtml(str: string): string {
 
 function oneLine(str: string): string {
   return (str || '').replace(/\s+/g, ' ').trim();
+}
+
+function clampScore(raw: string): number {
+  const n = parseInt(raw, 10);
+  if (isNaN(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+}
+
+// Danh hiệu dí dỏm theo bậc — PHẢI đồng bộ với frontend lib/readiness.ts
+function readinessRankTitle(score: number): string {
+  if (score >= 85) return 'Oppa tổng tài đang chờ ký HĐ 🔥';
+  if (score >= 70) return 'Chỉ còn thiếu mỗi vé máy bay ✈️';
+  if (score >= 50) return 'Tiềm năng làm rể/dâu Hàn Quốc 💪';
+  if (score >= 30) return 'Mới thuộc mỗi câu 안녕하세요 😅';
+  return 'Đang ở tập 1 của phim Hàn 🍿';
 }
 
 function truncate(str: string, max: number): string {

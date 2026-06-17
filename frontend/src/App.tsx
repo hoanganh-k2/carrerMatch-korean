@@ -9,6 +9,7 @@ import { useAuth, homePathForRole, UserRole } from '@/context/auth-context';
 
 import LandingPage from '@/pages/landing';
 import { QuickMatch } from '@/components/quick-match';
+import ReadinessPage from '@/pages/readiness';
 import JobsPage from '@/pages/jobs';
 import JobDetailPage from '@/pages/job-detail';
 import CompaniesPage from '@/pages/companies';
@@ -49,6 +50,7 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/quick-match" element={<QuickMatch />} />
+        <Route path="/readiness" element={<ReadinessPage />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:jobId" element={<JobDetailPage />} />
         <Route path="/companies" element={<CompaniesPage />} />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Sparkles, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { loginApi } from '@/lib/api';
+import { GoogleLoginButton } from '@/components/google-login-button';
 import { useAuth, homePathForRole } from '@/context/auth-context';
 
 const inputClass =
@@ -132,6 +133,14 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
+
+            {/* Phân cách + đăng nhập Google */}
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">hoặc</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <GoogleLoginButton />
 
             <div className="mt-6 text-center text-[12px] text-muted-foreground">
               Chưa có tài khoản?{' '}

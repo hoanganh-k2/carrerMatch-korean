@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Query, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, GoogleLoginDto } from './dto/auth.dto';
 import {
   ChangePasswordDto,
   ForgotPasswordDto,
@@ -22,6 +22,11 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('google')
+  googleLogin(@Body() dto: GoogleLoginDto) {
+    return this.authService.googleLogin(dto.credential);
   }
 
   @Get('me')

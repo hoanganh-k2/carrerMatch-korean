@@ -30,3 +30,9 @@ export class LoginDto {
   @IsString()
   password: string;
 }
+
+export class GoogleLoginDto {
+  // ID token (credential) trả về từ Google Identity Services ở frontend
+  @IsString()
+  credential: string;
+}
