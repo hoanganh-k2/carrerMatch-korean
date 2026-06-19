@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KBRIDGE — Frontend
 
-## Getting Started
+Giao diện web cho **KBRIDGE** (`careermatch-korean`), sàn tìm việc IT tiếng Hàn.
+Stack: **Vite + React 19 + TypeScript + Tailwind CSS 4** (đã migrate khỏi Next.js).
 
-First, run the development server:
+## Yêu cầu
+- Node.js 18+
+- Backend NestJS đang chạy (mặc định `http://localhost:3000`) — xem `../backend`.
+
+## Cấu hình môi trường
+Tạo file `.env` (tham khảo `.env.example`):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+VITE_API_URL=http://localhost:3000   # phải khớp PORT trong backend/.env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Chạy dev
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Mở **[http://localhost:5173](http://localhost:5173)** trên trình duyệt (cổng mặc định của Vite).
 
-## Learn More
+## Các lệnh khác
 
-To learn more about Next.js, take a look at the following resources:
+| Lệnh | Tác dụng |
+|------|----------|
+| `npm run dev` | Chạy Vite dev server (cổng 5173) |
+| `npm run build` | Type-check (`tsc -b`) + build production vào `dist/` |
+| `npm run preview` | Xem thử bản build production |
+| `npm run lint` | Chạy ESLint |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cấu trúc & quy ước
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Routing**: `react-router-dom` v7 — routes khai báo trong `src/App.tsx`, route theo role bọc bằng `src/components/guards/require-role.tsx`.
+- **Gọi API**: tập trung tại `src/lib/api.ts` (đọc `VITE_API_URL`); dùng các hàm `normalize*` để chuẩn hoá dữ liệu snake_case/camelCase từ backend.
+- **Auth**: `src/context/auth-context.tsx`, token lưu ở `localStorage` key `cm_token`.
+- **Theme**: token định nghĩa ở `src/globals.css` (Hanji cream `#F7F3EE`, Dancheong red `#C84B31`, navy `#1A1A2E`); luôn dùng class token (`bg-background`, `text-primary`...) thay vì màu hardcode.
+- **UI**: shadcn + radix-ui + lucide-react; gộp className bằng `cn()` trong `src/lib/utils.ts`.
+- **Ngôn ngữ**: text tiếng Việt; tiếng Hàn (안녕하세요, 화이팅) chỉ làm điểm nhấn.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> Chi tiết quy ước cho AI agent: xem `AGENTS.md`.
