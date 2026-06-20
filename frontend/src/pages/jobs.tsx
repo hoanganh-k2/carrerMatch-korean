@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { JobCard } from '@/components/job-card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { JobRow } from '@/components/job-row';
+import { StaggerGroup, StaggerItem } from '@/components/motion/stagger';
 import {
   Search,
   Sparkles,
@@ -199,17 +201,20 @@ export default function JobsPage() {
   return (
     <>
       {/* Search Banner */}
-      <section className="pt-12 pb-10 border-b border-border bg-gradient-to-b from-accent/30 to-background">
-        <div className="max-w-4xl mx-auto px-6">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-foreground mb-2 text-center">
-            Tìm kiếm việc làm IT tiếng Hàn
-          </h1>
-          <p className="text-muted-foreground text-sm text-center mb-6">
-            Khám phá hàng trăm cơ hội nghề nghiệp BrSE, Comtor và Developer tại Việt Nam & Hàn Quốc
-          </p>
+      <section className="pt-12 pb-10 border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="mb-6 space-y-2">
+            <p className="eyebrow">Tìm việc</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+              Tìm kiếm việc làm IT tiếng Hàn
+            </h1>
+            <p className="max-w-2xl text-muted-foreground text-sm">
+              Khám phá hàng trăm cơ hội nghề nghiệp BrSE, Comtor và Developer tại Việt Nam & Hàn Quốc
+            </p>
+          </div>
 
           {/* AI Search Bar */}
-          <div className="p-1.5 rounded-2xl bg-card border border-border shadow-lg max-w-3xl mx-auto space-y-2">
+          <div className="p-1.5 rounded-lg bg-card border border-border shadow-sm space-y-2">
             <form onSubmit={handleAISearchSubmit} className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
@@ -226,7 +231,7 @@ export default function JobsPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className={`h-12 px-4 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center gap-1.5 transition-all ${
+                  className={`h-12 px-4 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center gap-1.5 transition-all ${
                     showAdvancedFilters ? 'bg-secondary text-foreground' : ''
                   }`}
                 >
@@ -237,7 +242,7 @@ export default function JobsPage() {
                 <Button
                   type="submit"
                   disabled={searching}
-                  className="h-12 px-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 transition-all"
+                  className="h-12 px-5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all"
                 >
                   {searching ? (
                     <>
@@ -299,7 +304,7 @@ export default function JobsPage() {
 
           {/* Advanced Filters */}
           {showAdvancedFilters && (
-            <div className="max-w-3xl mx-auto mt-4 p-5 rounded-2xl bg-card border border-border text-left space-y-4 shadow-md animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="mt-4 p-5 rounded-lg bg-card border border-border text-left space-y-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
               <h3 className="font-bold text-xs text-foreground uppercase tracking-wider mb-2">Bộ lọc nâng cao</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -399,7 +404,7 @@ export default function JobsPage() {
       </section>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10 w-full">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full">
         {error && (
           <div className="mb-8 p-4 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-start gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -417,9 +422,9 @@ export default function JobsPage() {
               <button
                 key={filter}
                 onClick={() => handleQuickFilter(filter)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold tracking-wide border transition-all uppercase cursor-pointer ${
+                className={`px-4 py-2.5 rounded-md text-xs font-bold tracking-wide border transition-all uppercase cursor-pointer ${
                   activeFilter === filter
-                    ? 'bg-foreground text-background border-foreground shadow-sm'
+                    ? 'bg-foreground text-background border-foreground'
                     : 'bg-card text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground'
                 }`}
               >
@@ -442,32 +447,41 @@ export default function JobsPage() {
 
         {/* Job grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-60 rounded-2xl bg-card border border-border animate-pulse p-6 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="h-4 w-1/3 bg-secondary rounded" />
-                  <div className="h-6 w-3/4 bg-secondary rounded" />
-                  <div className="h-4 w-1/2 bg-secondary rounded" />
+              <div key={i} className="flex gap-4 rounded-lg border border-border bg-card p-4 animate-pulse">
+                <div className="size-14 shrink-0 rounded-md bg-secondary" />
+                <div className="flex-1 space-y-2.5 py-1">
+                  <div className="h-4 w-2/5 rounded bg-secondary" />
+                  <div className="h-3 w-1/4 rounded bg-secondary" />
+                  <div className="h-3 w-3/5 rounded bg-secondary" />
                 </div>
-                <div className="h-8 w-1/4 bg-secondary rounded" />
               </div>
             ))}
           </div>
         ) : jobs.length === 0 ? (
-          <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
-            <HelpCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-            <h3 className="font-extrabold text-lg text-foreground mb-2">Không tìm thấy công việc nào</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto text-xs">
-              Không có tin tuyển dụng phù hợp. Bấm nút "Tất cả" để reset bộ lọc. 화이팅!
-            </p>
-          </div>
+          <EmptyState
+            icon={<HelpCircle className="size-6" />}
+            title="Không tìm thấy công việc nào"
+            description={'Không có tin tuyển dụng phù hợp. Bấm "Tất cả" để xóa bộ lọc. 화이팅!'}
+            action={
+              <Button variant="outline" size="sm" onClick={() => handleQuickFilter('all')}>
+                Xóa bộ lọc
+              </Button>
+            }
+          />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StaggerGroup className="space-y-3">
             {jobs.map((job, index) => (
-              <JobCard key={job.id} job={job} onClick={() => handleOpenJob(job, (currentPage - 1) * PAGE_SIZE + index)} />
+              <StaggerItem key={job.id}>
+                <JobRow
+                  job={job}
+                  featured={typeof job.similarityScore === 'number' && job.similarityScore >= 0.75}
+                  onClick={() => handleOpenJob(job, (currentPage - 1) * PAGE_SIZE + index)}
+                />
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         )}
 
         {/* Pagination */}

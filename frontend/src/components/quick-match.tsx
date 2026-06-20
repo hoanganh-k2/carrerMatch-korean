@@ -9,19 +9,25 @@ import {
   RotateCcw,
   UserPlus,
   AlertCircle,
+  Cable,
+  Languages,
+  Server,
+  Smartphone,
+  LayoutGrid,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
 import { SkillPicker } from '@/components/skill-picker';
 import { JobCard } from '@/components/job-card';
 import { searchAdvancedJobsPaged, Job } from '@/lib/api';
 
 /** Các vai trò gợi ý — map sang câu truy vấn ngữ nghĩa cho AI search */
 const ROLE_OPTIONS = [
-  { label: 'BrSE / Kỹ sư cầu nối', icon: '🌉', query: 'BrSE kỹ sư cầu nối tiếng Hàn' },
-  { label: 'IT Comtor', icon: '🗣️', query: 'IT Comtor phiên dịch tiếng Hàn' },
-  { label: 'Backend Developer', icon: '⚙️', query: 'Backend Developer' },
-  { label: 'Frontend / Mobile', icon: '📱', query: 'Frontend Mobile Developer' },
-  { label: 'Tất cả vị trí', icon: '✨', query: '' },
+  { label: 'BrSE / Kỹ sư cầu nối', icon: Cable, query: 'BrSE kỹ sư cầu nối tiếng Hàn' },
+  { label: 'IT Comtor', icon: Languages, query: 'IT Comtor phiên dịch tiếng Hàn' },
+  { label: 'Backend Developer', icon: Server, query: 'Backend Developer' },
+  { label: 'Frontend / Mobile', icon: Smartphone, query: 'Frontend Mobile Developer' },
+  { label: 'Tất cả vị trí', icon: LayoutGrid, query: '' },
 ];
 
 /** Trình độ tiếng Hàn — map sang enum TopikLevel cao nhất trong nhóm */
@@ -39,7 +45,9 @@ const TOTAL_STEPS = 3;
  * Gọi POST /search/jobs (public, không cần token) và hiển thị việc phù hợp ngay,
  * sau đó mời tạo tài khoản. Tăng khả năng tiếp cận cho người dùng mới.
  */
-export function QuickMatch() {
+export function QuickMatch({
+  variant = 'section',
+}: { variant?: 'section' | 'bare' } = {}) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [roleIdx, setRoleIdx] = useState<number | null>(null);
@@ -83,23 +91,8 @@ export function QuickMatch() {
     setError(null);
   };
 
-  return (
-    <section className="py-14 border-b border-border bg-gradient-to-b from-background to-accent/20">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-primary text-xs font-bold mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            Tìm việc trong 30 giây — không cần đăng ký
-          </div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-foreground">
-            Việc nào hợp với bạn?
-          </h2>
-          <p className="text-muted-foreground text-sm mt-2">
-            Trả lời vài câu hỏi nhanh, AI sẽ gợi ý việc phù hợp ngay lập tức.
-          </p>
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+  const card = (
+    <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
           {!results ? (
             <div className="p-6 md:p-8">
               {/* Thanh tiến trình */}
@@ -121,23 +114,26 @@ export function QuickMatch() {
                     1. Bạn muốn làm vị trí nào?
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {ROLE_OPTIONS.map((r, i) => (
-                      <button
-                        key={r.label}
-                        type="button"
-                        onClick={() => setRoleIdx(i)}
-                        className={`p-4 rounded-xl border text-left transition-all ${
-                          roleIdx === i
-                            ? 'border-primary bg-accent/60 shadow-sm'
-                            : 'border-border bg-background hover:border-primary/40'
-                        }`}
-                      >
-                        <div className="text-2xl mb-1.5">{r.icon}</div>
-                        <div className="font-bold text-xs text-foreground leading-snug">
-                          {r.label}
-                        </div>
-                      </button>
-                    ))}
+                    {ROLE_OPTIONS.map((r, i) => {
+                      const Icon = r.icon;
+                      return (
+                        <button
+                          key={r.label}
+                          type="button"
+                          onClick={() => setRoleIdx(i)}
+                          className={`p-4 rounded-md border text-left transition-all ${
+                            roleIdx === i
+                              ? 'border-primary bg-accent/60'
+                              : 'border-border bg-background hover:border-primary/40'
+                          }`}
+                        >
+                          <Icon className={`mb-2 size-5 ${roleIdx === i ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <div className="font-bold text-xs text-foreground leading-snug">
+                            {r.label}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -154,9 +150,9 @@ export function QuickMatch() {
                         key={t.value}
                         type="button"
                         onClick={() => setTopik(t.value)}
-                        className={`p-4 rounded-xl border text-center font-bold text-sm transition-all ${
+                        className={`p-4 rounded-md border text-center font-bold text-sm transition-all ${
                           topik === t.value
-                            ? 'border-primary bg-accent/60 text-primary shadow-sm'
+                            ? 'border-primary bg-accent/60 text-primary'
                             : 'border-border bg-background text-foreground hover:border-primary/40'
                         }`}
                       >
@@ -275,7 +271,7 @@ export function QuickMatch() {
               )}
 
               {/* CTA tạo tài khoản */}
-              <div className="mt-7 p-5 rounded-2xl bg-accent/50 border border-primary/15 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="mt-7 p-5 rounded-lg bg-accent/50 border border-primary/15 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-center sm:text-left">
                   <p className="font-bold text-sm text-foreground">
                     Tạo tài khoản miễn phí để lưu việc & nhận thêm gợi ý
@@ -296,8 +292,25 @@ export function QuickMatch() {
               </div>
             </div>
           )}
+    </div>
+  );
+
+  if (variant === 'bare') return card;
+
+  return (
+    <section className="py-14 border-b border-border">
+      <Container size="content">
+        <div className="mb-8 max-w-2xl space-y-2">
+          <p className="eyebrow">Tìm nhanh — không cần đăng ký</p>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            Việc nào hợp với bạn?
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Trả lời vài câu hỏi nhanh, AI sẽ gợi ý việc phù hợp ngay lập tức.
+          </p>
         </div>
-      </div>
+        {card}
+      </Container>
     </section>
   );
 }

@@ -92,12 +92,13 @@ export default function AdminUsersPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 w-full space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+      <div className="space-y-2">
+        <p className="eyebrow">Quản trị</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Users className="w-6 h-6 text-primary" />
           Quản lý người dùng
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           Tổng {users.length} người dùng. Tìm kiếm, đổi vai trò, khóa/mở và gán quyền.
         </p>
       </div>
@@ -110,13 +111,13 @@ export default function AdminUsersPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm theo email hoặc tên..."
-            className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl text-xs focus:outline-none focus:border-primary"
+            className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-md text-xs focus:outline-none focus:border-primary"
           />
         </div>
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="px-3 py-2.5 bg-background border border-border rounded-xl text-xs focus:outline-none focus:border-primary"
+          className="px-3 py-2.5 bg-background border border-border rounded-md text-xs focus:outline-none focus:border-primary"
         >
           <option value="">Tất cả vai trò</option>
           {ROLES.map((r) => (
@@ -126,7 +127,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Bảng */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-secondary text-muted-foreground uppercase text-[10px] tracking-wider">
@@ -284,7 +285,7 @@ function PermissionsDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl max-h-[80vh] flex flex-col"
+        className="w-full max-w-lg bg-card border border-border rounded-lg shadow-2xl max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
@@ -313,7 +314,7 @@ function PermissionsDialog({
                 return (
                   <label
                     key={p.permissionId}
-                    className="flex items-center justify-between gap-3 p-3 bg-background border border-border rounded-xl cursor-pointer"
+                    className="flex items-center justify-between gap-3 p-3 bg-background border border-border rounded-md cursor-pointer"
                   >
                     <div className="min-w-0">
                       <span className="block font-bold text-xs text-foreground">{p.name}</span>

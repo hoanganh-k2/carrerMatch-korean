@@ -1,7 +1,10 @@
 import React from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CompanyLogo } from '@/components/ui/company-logo';
 import { MapPin, Wallet } from 'lucide-react';
+import { springSoft } from '@/lib/motion';
 import { Job } from '@/lib/api';
 
 interface JobCardProps {
@@ -10,6 +13,7 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, onClick }: JobCardProps) {
+  const reduce = useReducedMotion();
   const hasScore = typeof job.similarityScore === 'number';
   const scorePct = hasScore ? Math.round(job.similarityScore! * 100) : 0;
 
@@ -33,9 +37,15 @@ export function JobCard({ job, onClick }: JobCardProps) {
   };
 
   return (
+    <motion.div
+      whileHover={reduce ? undefined : { y: -5 }}
+      whileTap={reduce ? undefined : { scale: 0.99 }}
+      transition={springSoft}
+      className="h-full"
+    >
     <Card
       onClick={onClick}
-      className={`group bg-card border transition-all duration-300 flex flex-col justify-between h-full hover:-translate-y-1 hover:shadow-lg cursor-pointer ${
+      className={`group bg-card border transition-all duration-300 flex flex-col justify-between h-full hover:shadow-lg cursor-pointer ${
         hasScore
           ? 'border-primary/30 shadow-md shadow-primary/5 hover:border-primary/50'
           : 'border-border hover:border-primary/30'
@@ -51,18 +61,28 @@ export function JobCard({ job, onClick }: JobCardProps) {
           </Badge>
 
           {hasScore && (
-            <Badge className="bg-primary/10 text-primary border border-primary/20 rounded-md font-bold text-[10px] tracking-wide">
+            <Badge variant="spark" className="rounded-md font-bold text-[10px] tracking-wide">
               ĐỘ PHÙ HỢP AI: {scorePct}%
             </Badge>
           )}
         </div>
 
-        <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-          {job.title}
-        </CardTitle>
-        {job.company?.companyName && (
-          <span className="text-xs text-muted-foreground font-medium">{job.company.companyName}</span>
-        )}
+        <div className="flex items-start gap-3">
+          <CompanyLogo
+            logoUrl={job.company?.logoUrl}
+            name={job.company?.companyName}
+            className="size-11"
+            iconClassName="size-5"
+          />
+          <div className="min-w-0">
+            <CardTitle className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+              {job.title}
+            </CardTitle>
+            {job.company?.companyName && (
+              <span className="text-xs text-muted-foreground font-medium">{job.company.companyName}</span>
+            )}
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="py-2 flex-grow space-y-4">
@@ -75,7 +95,7 @@ export function JobCard({ job, onClick }: JobCardProps) {
           </div>
           <div className="flex items-center gap-1.5 justify-end">
             <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <span className="text-primary font-bold truncate">
+            <span className="text-primary font-bold font-mono truncate">
               {formatSalary(job.salaryMin, job.salaryMax)}
             </span>
           </div>
@@ -102,5 +122,6 @@ export function JobCard({ job, onClick }: JobCardProps) {
         </button>
       </CardFooter>
     </Card>
+    </motion.div>
   );
 }

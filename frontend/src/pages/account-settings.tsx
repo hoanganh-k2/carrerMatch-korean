@@ -9,16 +9,16 @@ import {
 import { useAuth } from '@/context/auth-context';
 
 const inputClass =
-  'w-full px-4 py-3 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
+  'w-full px-4 py-3 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
 const labelClass =
   'text-[11px] font-semibold text-muted-foreground uppercase tracking-wider';
-const cardClass = 'bg-card border border-border rounded-2xl p-6 shadow-sm';
+const cardClass = 'bg-card border border-border rounded-lg p-6 shadow-sm';
 
 function Banner({ type, text }: { type: 'success' | 'error'; text: string }) {
   const ok = type === 'success';
   return (
     <div
-      className={`mb-4 p-3 rounded-xl border text-[11px] flex items-start gap-2 ${
+      className={`mb-4 p-3 rounded-md border text-[11px] flex items-start gap-2 ${
         ok
           ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600'
           : 'bg-destructive/5 border-destructive/20 text-destructive'
@@ -120,9 +120,10 @@ export default function AccountSettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground">Cài đặt tài khoản</h1>
-        <p className="text-xs text-muted-foreground mt-1">Quản lý bảo mật và thông tin đăng nhập của bạn.</p>
+      <div className="space-y-2">
+        <p className="eyebrow">Tài khoản</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Cài đặt tài khoản</h1>
+        <p className="text-xs text-muted-foreground">Quản lý bảo mật và thông tin đăng nhập của bạn.</p>
       </div>
 
       {/* Trạng thái xác minh email */}
@@ -168,7 +169,7 @@ export default function AccountSettingsPage() {
           <button
             type="submit"
             disabled={emailLoading || newEmail.trim() === email}
-            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl transition-all disabled:opacity-60"
+            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md transition-all disabled:opacity-60"
           >
             {emailLoading ? 'Đang lưu...' : 'Lưu email'}
           </button>
@@ -206,7 +207,7 @@ export default function AccountSettingsPage() {
           <button
             type="submit"
             disabled={pwLoading || !currentPassword || !newPassword}
-            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl transition-all flex items-center gap-2 disabled:opacity-60"
+            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md transition-all flex items-center gap-2 disabled:opacity-60"
           >
             {pwLoading && <RefreshCw className="w-4 h-4 animate-spin" />}
             {pwLoading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
@@ -215,7 +216,7 @@ export default function AccountSettingsPage() {
       </div>
 
       {/* Xóa tài khoản */}
-      <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-6">
+      <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6">
         <div className="flex items-center gap-2 mb-2">
           <Trash2 className="w-4 h-4 text-destructive" />
           <h2 className="text-sm font-bold text-destructive">Xóa tài khoản</h2>
@@ -226,7 +227,7 @@ export default function AccountSettingsPage() {
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="px-4 py-2.5 border border-destructive/40 text-destructive font-bold text-xs rounded-xl hover:bg-destructive/10 transition-all"
+            className="px-4 py-2.5 border border-destructive/40 text-destructive font-bold text-xs rounded-md hover:bg-destructive/10 transition-all"
           >
             Tôi muốn xóa tài khoản
           </button>
@@ -234,7 +235,7 @@ export default function AccountSettingsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleDelete}
-              className="px-4 py-2.5 bg-destructive text-white font-bold text-xs rounded-xl hover:bg-destructive/90 transition-all"
+              className="px-4 py-2.5 bg-destructive text-white font-bold text-xs rounded-md hover:bg-destructive/90 transition-all"
             >
               Xác nhận xóa vĩnh viễn
             </button>

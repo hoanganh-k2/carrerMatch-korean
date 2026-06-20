@@ -19,7 +19,7 @@ const LOCATIONS = ['Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh', 'Seoul', 'Busan
 const TARGET_ROLES = ['BRSE', 'COMTOR', 'SE', 'QA', 'PM'];
 
 const inputClass =
-  'w-full px-3 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
+  'w-full px-3 py-2.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
 
 export default function ProfilePage() {
   const { token } = useAuth();
@@ -115,18 +115,19 @@ export default function ProfilePage() {
   return (
     <main className="max-w-4xl mx-auto px-6 py-10 w-full space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+        <div className="space-y-2">
+          <p className="eyebrow">Hồ sơ</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <User className="w-6 h-6 text-primary" />
             Hồ sơ ứng viên
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Hồ sơ càng đầy đủ, AI gợi ý việc làm càng chính xác. Khi bạn lưu, hệ thống tự sinh lại
             vector kỹ năng cho matching.
           </p>
         </div>
-        <div className="shrink-0 text-center bg-accent rounded-xl px-4 py-3">
-          <span className="block text-xl font-black text-primary">
+        <div className="shrink-0 text-center bg-accent rounded-md px-4 py-3">
+          <span className="block font-mono text-xl font-bold text-primary">
             {Math.round(completeness * 100)}%
           </span>
           <span className="text-[10px] font-bold text-accent-foreground uppercase">Hoàn thiện</span>
@@ -134,13 +135,13 @@ export default function ProfilePage() {
       </div>
 
       {success && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>Đã lưu hồ sơ và cập nhật vector AI thành công! 화이팅!</span>
         </div>
       )}
       {error && (
-        <div className="p-3.5 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -148,7 +149,7 @@ export default function ProfilePage() {
 
       <form onSubmit={handleSave} className="space-y-8">
         {/* Thông tin cơ bản */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
           <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
             Thông tin cơ bản
           </h2>
@@ -195,7 +196,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Năng lực tiếng Hàn */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
           <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
             Năng lực tiếng Hàn 한국어
           </h2>
@@ -260,7 +261,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Kỹ năng */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
           <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
             Kỹ năng chuyên môn
           </h2>
@@ -268,7 +269,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Mong muốn công việc */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
           <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
             Mong muốn công việc
           </h2>
@@ -347,7 +348,7 @@ export default function ProfilePage() {
         <Button
           type="submit"
           disabled={saving}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+          className="w-full py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-md shadow-md shadow-primary/20 flex items-center justify-center gap-2"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           <span>{saving ? 'Đang lưu và sinh vector AI...' : 'Lưu hồ sơ'}</span>

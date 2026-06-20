@@ -27,12 +27,12 @@ function StatCard({
   sub?: string;
 }) {
   return (
-    <div className="p-5 bg-card border border-border rounded-2xl flex items-center gap-4">
-      <div className="w-11 h-11 rounded-xl bg-accent flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5 text-primary" />
+    <div className="p-5 bg-card border border-border rounded-lg flex items-center gap-4">
+      <div className="size-11 rounded-md border border-border flex items-center justify-center shrink-0 text-primary">
+        <Icon className="w-5 h-5" />
       </div>
       <div className="leading-tight">
-        <span className="block text-xl font-extrabold text-foreground">{value}</span>
+        <span className="block font-mono text-xl font-bold text-foreground">{value}</span>
         <span className="text-xs text-muted-foreground font-medium">{label}</span>
         {sub && <span className="block text-[10px] text-muted-foreground/70">{sub}</span>}
       </div>
@@ -103,25 +103,26 @@ export default function AdminDashboardPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 w-full space-y-8">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+      <div className="space-y-2">
+        <p className="eyebrow">Quản trị</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-primary" />
           Quản trị hệ thống KBRIDGE
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           Thống kê toàn hệ thống: người dùng, công ty, tin tuyển dụng và xu hướng kỹ năng.
         </p>
       </div>
 
       {/* Điều hướng nhanh tới các trang quản trị */}
       <div className="flex flex-wrap gap-3">
-        <Link to="/admin/users" className="px-4 py-2.5 bg-card border border-border rounded-xl text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
+        <Link to="/admin/users" className="px-4 py-2.5 bg-card border border-border rounded-md text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
           <Users className="w-4 h-4 text-primary" /> Quản lý người dùng
         </Link>
-        <Link to="/admin/jobs" className="px-4 py-2.5 bg-card border border-border rounded-xl text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
+        <Link to="/admin/jobs" className="px-4 py-2.5 bg-card border border-border rounded-md text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
           <Briefcase className="w-4 h-4 text-primary" /> Kiểm duyệt tin
         </Link>
-        <Link to="/admin/reviews" className="px-4 py-2.5 bg-card border border-border rounded-xl text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
+        <Link to="/admin/reviews" className="px-4 py-2.5 bg-card border border-border rounded-md text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-primary" /> Kiểm duyệt đánh giá
         </Link>
       </div>
@@ -156,7 +157,7 @@ export default function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top skills bar chart */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <section className="bg-card border border-border rounded-lg p-6 space-y-4">
           <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-primary" />
             Top kỹ năng của ứng viên
@@ -180,14 +181,14 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* Applications by status */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <section className="bg-card border border-border rounded-lg p-6 space-y-4">
           <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
             Đơn ứng tuyển theo trạng thái
           </h2>
           <div className="flex flex-wrap gap-3">
             {(data?.applications?.byStatus ?? []).map((a: any) => (
-              <div key={a.status} className="px-4 py-3 bg-secondary/60 border border-border rounded-xl text-center">
-                <span className="block text-lg font-extrabold text-foreground">{a.count}</span>
+              <div key={a.status} className="px-4 py-3 bg-secondary/60 border border-border rounded-md text-center">
+                <span className="block font-mono text-lg font-bold text-foreground">{a.count}</span>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase">
                   {APP_STATUS_LABELS[a.status] ?? a.status}
                 </span>
@@ -198,7 +199,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Company verification */}
-      <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+      <section className="bg-card border border-border rounded-lg p-6 space-y-4">
         <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide flex items-center gap-1.5">
           <BadgeCheck className="w-4 h-4 text-primary" />
           Duyệt xác thực công ty ({pendingCompanies.length} chờ duyệt)
@@ -210,7 +211,7 @@ export default function AdminDashboardPage() {
             {pendingCompanies.slice(0, 10).map((c) => (
               <div
                 key={c.companyId}
-                className="flex items-center justify-between gap-4 p-4 bg-background border border-border rounded-xl"
+                className="flex items-center justify-between gap-4 p-4 bg-background border border-border rounded-md"
               >
                 <div className="min-w-0">
                   <span className="block font-bold text-sm text-foreground truncate">{c.companyName}</span>

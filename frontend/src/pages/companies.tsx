@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { Building2, MapPin, Users, ChevronLeft, ChevronRight, Search, HelpCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Container } from '@/components/ui/container';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { fetchCompanies, getUploadedFileUrl } from '@/lib/api';
 
 const PAGE_SIZE = 12;
@@ -56,12 +59,14 @@ export default function CompaniesPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
+    <Container size="wide" className="py-10">
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-foreground mb-2">Danh sách công ty</h1>
-        <p className="text-muted-foreground text-sm">Khám phá các doanh nghiệp IT hàng đầu tuyển dụng nhân tài tiếng Hàn</p>
-      </div>
+      <PageHeader
+        eyebrow="Đối tác tuyển dụng"
+        title="Danh sách công ty"
+        description="Khám phá các doanh nghiệp IT hàng đầu tuyển dụng nhân tài tiếng Hàn"
+        className="mb-8"
+      />
 
       {/* Search */}
       <div className="relative max-w-md mb-8">
@@ -85,9 +90,9 @@ export default function CompaniesPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1,2,3,4,5,6].map((i) => (
-            <div key={i} className="h-48 rounded-2xl bg-card border border-border animate-pulse p-5 space-y-3">
+            <div key={i} className="h-48 rounded-lg bg-card border border-border animate-pulse p-5 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-secondary" />
+                <div className="w-12 h-12 rounded-md bg-secondary" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 w-2/3 bg-secondary rounded" />
                   <div className="h-3 w-1/2 bg-secondary rounded" />
@@ -99,33 +104,30 @@ export default function CompaniesPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="text-center py-16 bg-card border border-dashed border-border rounded-2xl">
-          <HelpCircle className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm">{error}</p>
-        </div>
+        <EmptyState icon={<HelpCircle className="size-6" />} title="Không tải được danh sách" description={error} />
       ) : paginated.length === 0 ? (
-        <div className="text-center py-16 bg-card border border-dashed border-border rounded-2xl">
-          <HelpCircle className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="font-extrabold text-foreground mb-2">Không tìm thấy công ty nào</h3>
-          <p className="text-muted-foreground text-xs">Thử từ khóa khác hoặc xóa bộ lọc</p>
-        </div>
+        <EmptyState
+          icon={<HelpCircle className="size-6" />}
+          title="Không tìm thấy công ty nào"
+          description="Thử từ khóa khác hoặc xóa bộ lọc."
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {paginated.map((company) => (
             <Link
               key={company.companyId}
               to={`/companies/${company.companyId}`}
-              className="group p-5 bg-card border border-border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all"
+              className="group p-5 bg-card border border-border rounded-lg hover:border-primary/40 hover:shadow-sm transition-all"
             >
               <div className="flex items-start gap-3 mb-4">
                 {company.logoUrl ? (
                   <img
                     src={getUploadedFileUrl(company.logoUrl)}
                     alt={company.companyName}
-                    className="w-12 h-12 rounded-xl object-contain bg-background border border-border p-1"
+                    className="w-12 h-12 rounded-md object-contain bg-background border border-border p-1"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center shrink-0">
                     <Building2 className="w-6 h-6 text-primary" />
                   </div>
                 )}
@@ -137,7 +139,7 @@ export default function CompaniesPage() {
                     <span className="text-[10px] text-muted-foreground font-medium">{company.industry}</span>
                   )}
                   {company.isVerified && (
-                    <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
                       Đã xác thực
                     </span>
                   )}
@@ -216,6 +218,6 @@ export default function CompaniesPage() {
           </Button>
         </div>
       )}
-    </div>
+    </Container>
   );
 }

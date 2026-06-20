@@ -29,7 +29,7 @@ import {
 } from '@/lib/api';
 
 const inputClass =
-  'w-full px-3 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
+  'w-full px-3 py-2.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
 
 const TOPIK_OPTIONS = [
   { value: 'NONE', label: 'Không yêu cầu' },
@@ -211,7 +211,7 @@ export default function RecruiterJobsPage() {
   if (!company?.companyId) {
     return (
       <main className="max-w-5xl mx-auto px-6 py-10 w-full">
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
+        <div className="text-center py-20 bg-card border border-dashed border-border rounded-lg">
           <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
           <h3 className="font-extrabold text-lg text-foreground mb-2">Bạn chưa có hồ sơ công ty</h3>
           <p className="text-muted-foreground text-xs mb-5">
@@ -231,12 +231,13 @@ export default function RecruiterJobsPage() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-10 w-full space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+        <div className="space-y-2">
+          <p className="eyebrow">Tin tuyển dụng</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Briefcase className="w-6 h-6 text-primary" />
             Tin tuyển dụng của {company.companyName}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {jobs.length} tin — khi đăng tin mới, AI tự sinh vector ngữ nghĩa cho semantic search và
             matching.
           </p>
@@ -251,7 +252,7 @@ export default function RecruiterJobsPage() {
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -261,7 +262,7 @@ export default function RecruiterJobsPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-card border border-border rounded-2xl p-6 space-y-5 animate-in fade-in slide-in-from-top-2"
+          className="bg-card border border-border rounded-lg p-6 space-y-5 animate-in fade-in slide-in-from-top-2"
         >
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-extrabold text-foreground flex items-center gap-1.5">
@@ -399,7 +400,7 @@ export default function RecruiterJobsPage() {
           <Button
             type="submit"
             disabled={saving}
-            className="w-full py-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+            className="w-full py-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-md shadow-md shadow-primary/20 flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             <span>
@@ -415,7 +416,7 @@ export default function RecruiterJobsPage() {
 
       {/* Danh sách tin */}
       {jobs.length === 0 ? (
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
+        <div className="text-center py-20 bg-card border border-dashed border-border rounded-lg">
           <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
           <h3 className="font-extrabold text-lg text-foreground mb-2">Chưa có tin tuyển dụng nào</h3>
           <p className="text-muted-foreground text-xs">Bấm "Đăng tin mới" để bắt đầu tìm ứng viên. 화이팅!</p>
@@ -425,7 +426,7 @@ export default function RecruiterJobsPage() {
           {jobs.map((job) => (
             <div
               key={job.id}
-              className="bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/40 transition-colors"
+              className="bg-card border border-border rounded-lg p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/40 transition-colors"
             >
               <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">

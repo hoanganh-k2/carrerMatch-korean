@@ -179,15 +179,16 @@ export default function RecruiterJobDetailPage() {
         <ArrowLeft className="w-3.5 h-3.5" /> Quay lại danh sách tin
       </Link>
 
-      <div>
-        <h1 className="text-xl font-extrabold text-foreground leading-snug">{job?.title || 'Tin tuyển dụng'}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="space-y-2">
+        <p className="eyebrow">Đơn & ứng viên</p>
+        <h1 className="text-xl font-bold tracking-tight text-foreground leading-snug">{job?.title || 'Tin tuyển dụng'}</h1>
+        <p className="text-sm text-muted-foreground">
           {job?.location} • Yêu cầu: {formatTopik(job?.minTopikRequired || 'NONE')}
         </p>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -221,7 +222,7 @@ export default function RecruiterJobDetailPage() {
 
       {activeTab === 'applications' ? (
         applications.length === 0 ? (
-          <div className="text-center py-16 bg-card border border-dashed border-border rounded-3xl">
+          <div className="text-center py-16 bg-card border border-dashed border-border rounded-lg">
             <Users className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-muted-foreground text-xs">
               Chưa có đơn ứng tuyển nào. Hãy thử tab "Ứng viên AI gợi ý" để chủ động tìm người phù hợp.
@@ -234,7 +235,7 @@ export default function RecruiterJobDetailPage() {
               const scorePct = Math.round((app.matchScore ?? 0) * 100);
               const breakdown = app.matchBreakdownJson || {};
               return (
-                <div key={app.applicationId} className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <div key={app.applicationId} className="bg-card border border-border rounded-lg p-5 space-y-4">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                     <div className="space-y-1 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -273,12 +274,12 @@ export default function RecruiterJobDetailPage() {
                       )}
                     </div>
 
-                    <div className="shrink-0 text-center bg-accent rounded-xl px-4 py-2.5">
-                      <span className="block text-xl font-black text-primary">{scorePct}%</span>
+                    <div className="shrink-0 text-center bg-accent rounded-md px-4 py-2.5">
+                      <span className="block font-mono text-xl font-bold text-primary">{scorePct}%</span>
                       <span className="text-[9px] font-bold text-accent-foreground uppercase">Match AI</span>
                       <div className="text-[9px] text-muted-foreground mt-1 space-y-0.5">
                         {breakdown.it_skill != null && <div>IT: {Math.round(breakdown.it_skill * 100)}%</div>}
-                        {breakdown.korean_skill != null && <div>한국어: {Math.round(breakdown.korean_skill * 100)}%</div>}
+                        {breakdown.korean_skill != null && <div>Tiếng Hàn: {Math.round(breakdown.korean_skill * 100)}%</div>}
                       </div>
                     </div>
                   </div>
@@ -340,7 +341,7 @@ export default function RecruiterJobDetailPage() {
                   {noteFormId === app.applicationId && (
                     <form
                       onSubmit={(e) => handleNoteSubmit(e, app.applicationId, app.status)}
-                      className="p-4 bg-secondary/60 border border-border rounded-xl space-y-3 animate-in fade-in"
+                      className="p-4 bg-secondary/60 border border-border rounded-md space-y-3 animate-in fade-in"
                     >
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-semibold text-muted-foreground mr-2">Chấm điểm:</span>
@@ -376,7 +377,7 @@ export default function RecruiterJobDetailPage() {
                   {interviewFormId === app.applicationId && (
                     <form
                       onSubmit={(e) => handleCreateInterview(e, app.applicationId)}
-                      className="p-4 bg-secondary/60 border border-border rounded-xl space-y-3 animate-in fade-in"
+                      className="p-4 bg-secondary/60 border border-border rounded-md space-y-3 animate-in fade-in"
                     >
                       <h4 className="text-xs font-bold text-foreground">Tạo lịch phỏng vấn</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -413,7 +414,7 @@ export default function RecruiterJobDetailPage() {
       ) : (
         /* Tab Ứng viên AI gợi ý */
         <div className="space-y-4">
-          <p className="text-xs text-muted-foreground bg-accent/60 border border-border rounded-xl p-3.5 leading-relaxed">
+          <p className="text-xs text-muted-foreground bg-accent/60 border border-border rounded-md p-3.5 leading-relaxed">
             <Sparkles className="w-3.5 h-3.5 text-primary inline mr-1 -mt-0.5" />
             AI so khớp vector kỹ năng của các ứng viên đã nộp đơn vào tin này với JD và xếp hạng
             kèm giải thích, giúp bạn ưu tiên hồ sơ phù hợp nhất.
@@ -425,7 +426,7 @@ export default function RecruiterJobDetailPage() {
               <p className="text-xs text-muted-foreground">AI đang quét và xếp hạng ứng viên...</p>
             </div>
           ) : matches.length === 0 ? (
-            <div className="text-center py-16 bg-card border border-dashed border-border rounded-3xl">
+            <div className="text-center py-16 bg-card border border-dashed border-border rounded-lg">
               <Sparkles className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
               <p className="text-muted-foreground text-xs">Không tìm thấy ứng viên phù hợp trong hệ thống.</p>
             </div>
@@ -433,7 +434,7 @@ export default function RecruiterJobDetailPage() {
             matches.map((m, idx) => (
               <div
                 key={m.candidateId}
-                className="bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-card border border-border rounded-lg p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-2">
@@ -451,8 +452,8 @@ export default function RecruiterJobDetailPage() {
                     <span>{m.breakdown?.koreanLevelMatch}</span>
                   </div>
                 </div>
-                <div className="shrink-0 text-center bg-accent rounded-xl px-4 py-3">
-                  <span className="block text-2xl font-black text-primary">
+                <div className="shrink-0 text-center bg-accent rounded-md px-4 py-3">
+                  <span className="block font-mono text-2xl font-bold text-primary">
                     {Math.round((m.finalMatchScore ?? 0) * 100)}%
                   </span>
                   <span className="text-[10px] font-bold text-accent-foreground uppercase">Phù hợp</span>

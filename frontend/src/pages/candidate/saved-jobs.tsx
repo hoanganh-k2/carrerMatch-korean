@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Bookmark, Loader2, AlertCircle } from 'lucide-react';
 import { JobCard } from '@/components/job-card';
 import { JobDrawer } from '@/components/job-drawer';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/context/auth-context';
 import { Job, fetchMySavedJobs } from '@/lib/api';
 
@@ -22,18 +23,19 @@ export default function SavedJobsPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-10 w-full space-y-8">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+      <div className="space-y-2">
+        <p className="eyebrow">Việc đã lưu</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Bookmark className="w-6 h-6 text-primary" />
           Tin tuyển dụng đã lưu
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           {jobs.length} tin bạn đã đánh dấu để xem lại sau.
         </p>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -44,13 +46,11 @@ export default function SavedJobsPage() {
           <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
         </div>
       ) : jobs.length === 0 ? (
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
-          <Bookmark className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-extrabold text-lg text-foreground mb-2">Chưa có tin nào được lưu</h3>
-          <p className="text-muted-foreground text-xs">
-            Bấm biểu tượng bookmark trong trang chi tiết việc làm để lưu lại tin hấp dẫn.
-          </p>
-        </div>
+        <EmptyState
+          icon={<Bookmark className="size-6" />}
+          title="Chưa có tin nào được lưu"
+          description="Bấm biểu tượng bookmark trong trang chi tiết việc làm để lưu lại tin hấp dẫn."
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {jobs.map((job) => (

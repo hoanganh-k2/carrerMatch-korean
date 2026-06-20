@@ -49,22 +49,23 @@ export default function AdminReviewsPage() {
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10 w-full space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+      <div className="space-y-2">
+        <p className="eyebrow">Kiểm duyệt</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <MessageSquare className="w-6 h-6 text-primary" />
           Kiểm duyệt đánh giá công ty
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Tổng {reviews.length} đánh giá. Gỡ các đánh giá vi phạm.</p>
+        <p className="text-sm text-muted-foreground">Tổng {reviews.length} đánh giá. Gỡ các đánh giá vi phạm.</p>
       </div>
 
       <div className="space-y-3">
         {reviews.length === 0 ? (
-          <div className="bg-card border border-border rounded-2xl px-4 py-10 text-center text-muted-foreground italic text-xs">
+          <div className="bg-card border border-border rounded-lg px-4 py-10 text-center text-muted-foreground italic text-xs">
             Chưa có đánh giá nào
           </div>
         ) : (
           reviews.map((r) => (
-            <div key={r.id} className="bg-card border border-border rounded-2xl p-4 flex items-start justify-between gap-4">
+            <div key={r.id} className="bg-card border border-border rounded-lg p-4 flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-bold text-sm text-foreground">{r.companyName}</span>

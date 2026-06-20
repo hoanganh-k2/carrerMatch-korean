@@ -20,12 +20,12 @@ function StatCard({
   to?: string;
 }) {
   const body = (
-    <div className="p-5 bg-card border border-border rounded-2xl flex items-center gap-4 hover:border-primary/40 transition-colors h-full">
-      <div className="w-11 h-11 rounded-xl bg-accent flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5 text-primary" />
+    <div className="p-5 bg-card border border-border rounded-lg flex items-center gap-4 hover:border-primary/40 transition-colors h-full">
+      <div className="size-11 rounded-md border border-border flex items-center justify-center shrink-0 text-primary">
+        <Icon className="w-5 h-5" />
       </div>
       <div className="leading-tight">
-        <span className="block text-xl font-extrabold text-foreground">{value}</span>
+        <span className="block font-mono text-xl font-bold text-foreground">{value}</span>
         <span className="text-xs text-muted-foreground font-medium">{label}</span>
       </div>
     </div>
@@ -62,11 +62,13 @@ export default function CandidateDashboardPage() {
   return (
     <main className="max-w-7xl mx-auto px-6 py-10 w-full space-y-8">
       {/* Greeting */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground">
-          안녕하세요, {displayName || 'bạn'}! <span className="text-primary">화이팅!</span>
+      <div className="space-y-2">
+        <p className="eyebrow">Bảng điều khiển</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <span lang="ko">안녕하세요</span>, {displayName || 'bạn'}!{' '}
+          <span className="text-primary" lang="ko">화이팅!</span>
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           Bảng điều khiển cá nhân — theo dõi đơn ứng tuyển, lịch phỏng vấn và đăng ký nhận việc.
         </p>
       </div>
@@ -109,7 +111,7 @@ export default function CandidateDashboardPage() {
       {readiness && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <ReadinessCard result={readiness} name={displayName || undefined} />
-          <div className="p-6 bg-card border border-border rounded-2xl">
+          <div className="p-6 bg-card border border-border rounded-lg">
             <h3 className="font-bold text-foreground flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
               Tăng điểm sẵn sàng của bạn
@@ -120,13 +122,13 @@ export default function CandidateDashboardPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 to="/candidate/profile"
-                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
+                className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
               >
                 Cập nhật hồ sơ
               </Link>
               <Link
                 to="/readiness"
-                className="px-4 py-2 rounded-xl border border-border text-xs font-bold text-foreground hover:border-primary/40 transition-colors"
+                className="px-4 py-2 rounded-md border border-border text-xs font-bold text-foreground hover:border-primary/40 transition-colors"
               >
                 Xem trang đầy đủ
               </Link>

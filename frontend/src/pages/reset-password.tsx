@@ -4,7 +4,7 @@ import { Lock, Sparkles, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-reac
 import { resetPassword } from '@/lib/api';
 
 const inputClass =
-  'w-full pl-10 pr-10 py-3 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
+  'w-full pl-10 pr-10 py-3 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
 
 export default function ResetPasswordPage() {
   const [params] = useSearchParams();
@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 text-center">
+        <div className="w-full max-w-md bg-card border border-border rounded-lg p-6 text-center">
           <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-3" />
           <p className="text-sm text-foreground font-semibold">Liên kết không hợp lệ</p>
           <p className="text-xs text-muted-foreground mt-1">Thiếu mã đặt lại mật khẩu.</p>
@@ -55,9 +55,9 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-accent/30 to-background">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
           <div className="px-6 pt-8 pb-6 border-b border-border text-center">
             <h1 className="text-xl font-extrabold text-foreground">Đặt lại mật khẩu</h1>
             <p className="text-xs text-muted-foreground mt-1">Nhập mật khẩu mới cho tài khoản của bạn.</p>
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
 
           <div className="px-6 py-6">
             {error && (
-              <div className="mb-4 p-3 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-[11px] flex items-start gap-2">
+              <div className="mb-4 p-3 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-[11px] flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
@@ -108,7 +108,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading ? (
                   <><RefreshCw className="w-4 h-4 animate-spin" /><span>Đang xử lý...</span></>

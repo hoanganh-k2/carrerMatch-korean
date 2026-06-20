@@ -6,7 +6,7 @@ import { GoogleLoginButton } from '@/components/google-login-button';
 import { useAuth, homePathForRole } from '@/context/auth-context';
 
 const inputClass =
-  'w-full pl-10 pr-4 py-3 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
+  'w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
 
 export default function RegisterPage() {
   const { signIn, token, role } = useAuth();
@@ -51,13 +51,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-accent/30 to-background">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
           {/* Header */}
           <div className="px-6 pt-8 pb-6 border-b border-border text-center">
             <Link to="/" className="inline-flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/25">
+              <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center shadow-md shadow-primary/25">
                 <span className="font-extrabold text-lg text-primary-foreground">K</span>
               </div>
               <div className="leading-tight text-left">
@@ -73,7 +73,7 @@ export default function RegisterPage() {
 
           <div className="px-6 py-6">
             {error && (
-              <div className="mb-4 p-3 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-[11px] flex items-start gap-2">
+              <div className="mb-4 p-3 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-[11px] flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole('candidate')}
-                    className={`p-3.5 rounded-xl border text-left transition-all duration-200 ${
+                    className={`p-3.5 rounded-md border text-left transition-all duration-200 ${
                       selectedRole === 'candidate' ? 'bg-accent border-primary/50 shadow-sm' : 'bg-background border-border hover:border-primary/30'
                     }`}
                   >
@@ -155,7 +155,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole('recruiter')}
-                    className={`p-3.5 rounded-xl border text-left transition-all duration-200 ${
+                    className={`p-3.5 rounded-md border text-left transition-all duration-200 ${
                       selectedRole === 'recruiter' ? 'bg-accent border-primary/50 shadow-sm' : 'bg-background border-border hover:border-primary/30'
                     }`}
                   >
@@ -171,7 +171,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-md shadow-primary/20 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md shadow-md shadow-primary/20 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
               >
                 {loading ? (
                   <><RefreshCw className="w-4 h-4 animate-spin" /><span>Đang xử lý...</span></>

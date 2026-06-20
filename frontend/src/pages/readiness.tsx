@@ -54,7 +54,7 @@ function ReadinessQuiz({ onDone }: { onDone: (r: ReadinessResult) => void }) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 md:p-8 space-y-6">
+    <div className="bg-card border border-border rounded-lg p-6 md:p-8 space-y-6">
       <div>
         <h3 className="font-bold text-foreground mb-3">1. Trình độ tiếng Hàn của bạn?</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -63,7 +63,7 @@ function ReadinessQuiz({ onDone }: { onDone: (r: ReadinessResult) => void }) {
               key={t.value}
               type="button"
               onClick={() => setTopik(t.value)}
-              className={`p-3 rounded-xl border text-center font-bold text-sm transition-all ${
+              className={`p-3 rounded-md border text-center font-bold text-sm transition-all ${
                 topik === t.value
                   ? 'border-primary bg-accent/60 text-primary shadow-sm'
                   : 'border-border bg-background text-foreground hover:border-primary/40'
@@ -107,7 +107,7 @@ function ReadinessQuiz({ onDone }: { onDone: (r: ReadinessResult) => void }) {
           <button
             type="button"
             onClick={() => setIsBrSE(true)}
-            className={`flex-1 p-3 rounded-xl border font-bold text-sm transition-all ${
+            className={`flex-1 p-3 rounded-md border font-bold text-sm transition-all ${
               isBrSE
                 ? 'border-primary bg-accent/60 text-primary shadow-sm'
                 : 'border-border bg-background text-foreground hover:border-primary/40'
@@ -118,7 +118,7 @@ function ReadinessQuiz({ onDone }: { onDone: (r: ReadinessResult) => void }) {
           <button
             type="button"
             onClick={() => setIsBrSE(false)}
-            className={`flex-1 p-3 rounded-xl border font-bold text-sm transition-all ${
+            className={`flex-1 p-3 rounded-md border font-bold text-sm transition-all ${
               !isBrSE
                 ? 'border-primary bg-accent/60 text-primary shadow-sm'
                 : 'border-border bg-background text-foreground hover:border-primary/40'
@@ -131,7 +131,7 @@ function ReadinessQuiz({ onDone }: { onDone: (r: ReadinessResult) => void }) {
 
       <Button
         onClick={submit}
-        className="w-full h-12 rounded-xl font-bold gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+        className="w-full h-12 rounded-md font-bold gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
       >
         <Sparkles className="w-4 h-4" />
         Xem mức độ sẵn sàng của tôi
@@ -176,18 +176,19 @@ export default function ReadinessPage() {
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-10 w-full space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
+      <div className="space-y-2">
+        <p className="eyebrow">Đánh giá</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
           Mức độ sẵn sàng thị trường Hàn 🇰🇷
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           Xem bạn đã sẵn sàng bao nhiêu % để đi làm thị trường Hàn — rồi khoe với bạn bè!
         </p>
       </div>
 
       {/* Banner khi mở từ link chia sẻ của người khác */}
       {sharedScore !== null && sharedRank && (
-        <div className="rounded-2xl border border-primary/20 bg-accent/40 p-5 text-center">
+        <div className="rounded-lg border border-primary/20 bg-accent/40 p-5 text-center">
           <p className="text-sm text-foreground">
             <span className="font-bold">{sharedName || 'Một người bạn'}</span> đạt{' '}
             <span className="font-extrabold text-primary text-lg">{sharedScore}%</span> — “{sharedRank.title}”

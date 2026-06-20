@@ -60,12 +60,13 @@ export default function AdminJobsPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 w-full space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+      <div className="space-y-2">
+        <p className="eyebrow">Kiểm duyệt</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Briefcase className="w-6 h-6 text-primary" />
           Kiểm duyệt tin tuyển dụng
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Tổng {jobs.length} tin. Xóa các tin vi phạm.</p>
+        <p className="text-sm text-muted-foreground">Tổng {jobs.length} tin. Xóa các tin vi phạm.</p>
       </div>
 
       <div className="relative max-w-md">
@@ -74,11 +75,11 @@ export default function AdminJobsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Tìm theo tiêu đề hoặc công ty..."
-          className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl text-xs focus:outline-none focus:border-primary"
+          className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-md text-xs focus:outline-none focus:border-primary"
         />
       </div>
 
-      <div className="bg-card border border-border rounded-2xl divide-y divide-border">
+      <div className="bg-card border border-border rounded-lg divide-y divide-border">
         {filtered.length === 0 ? (
           <div className="px-4 py-10 text-center text-muted-foreground italic text-xs">Không có tin nào</div>
         ) : (

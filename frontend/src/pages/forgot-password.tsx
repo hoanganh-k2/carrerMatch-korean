@@ -4,7 +4,7 @@ import { Mail, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-rea
 import { forgotPassword } from '@/lib/api';
 
 const inputClass =
-  'w-full pl-10 pr-4 py-3 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
+  'w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -31,9 +31,9 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-accent/30 to-background">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
           <div className="px-6 pt-8 pb-6 border-b border-border text-center">
             <h1 className="text-xl font-extrabold text-foreground">Quên mật khẩu</h1>
             <p className="text-xs text-muted-foreground mt-1">
@@ -43,14 +43,14 @@ export default function ForgotPasswordPage() {
 
           <div className="px-6 py-6">
             {message ? (
-              <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-emerald-600 text-xs flex items-start gap-2">
+              <div className="p-4 rounded-md bg-emerald-500/5 border border-emerald-500/20 text-emerald-600 text-xs flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{message}</span>
               </div>
             ) : (
               <>
                 {error && (
-                  <div className="mb-4 p-3 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-[11px] flex items-start gap-2">
+                  <div className="mb-4 p-3 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-[11px] flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>{error}</span>
                   </div>
@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                   >
                     {loading ? (
                       <><RefreshCw className="w-4 h-4 animate-spin" /><span>Đang gửi...</span></>

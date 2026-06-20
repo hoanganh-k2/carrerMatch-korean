@@ -5,7 +5,7 @@ import { useAuth } from '@/context/auth-context';
 import { fetchMyCompany, createCompany, updateCompany, uploadFile, getUploadedFileUrl } from '@/lib/api';
 
 const inputClass =
-  'w-full px-3 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
+  'w-full px-3 py-2.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
 
 export default function CompanyPage() {
   const { token } = useAuth();
@@ -104,8 +104,9 @@ export default function CompanyPage() {
   return (
     <main className="max-w-3xl mx-auto px-6 py-10 w-full space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+        <div className="space-y-2">
+          <p className="eyebrow">Công ty</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Building2 className="w-6 h-6 text-primary" />
             Hồ sơ công ty
           </h1>
@@ -130,22 +131,22 @@ export default function CompanyPage() {
       </div>
 
       {success && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>Đã lưu hồ sơ công ty thành công!</span>
         </div>
       )}
       {error && (
-        <div className="p-3.5 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSave} className="bg-card border border-border rounded-2xl p-6 space-y-5">
+      <form onSubmit={handleSave} className="bg-card border border-border rounded-lg p-6 space-y-5">
         {/* Logo */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl bg-secondary border border-border flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-16 h-16 rounded-md bg-secondary border border-border flex items-center justify-center overflow-hidden shrink-0">
             {logoUrl ? (
               <img src={getUploadedFileUrl(logoUrl)} alt="logo" className="w-full h-full object-cover" />
             ) : (
@@ -220,7 +221,7 @@ export default function CompanyPage() {
         <Button
           type="submit"
           disabled={saving || !companyName.trim()}
-          className="w-full py-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+          className="w-full py-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-md shadow-md shadow-primary/20 flex items-center justify-center gap-2"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           <span>{companyId ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ công ty'}</span>

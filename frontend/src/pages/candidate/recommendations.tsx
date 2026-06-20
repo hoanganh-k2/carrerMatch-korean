@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, MapPin, Wallet, AlertCircle, GraduationCap, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/context/auth-context';
 import { fetchRecommendations } from '@/lib/api';
 
@@ -46,19 +47,20 @@ export default function RecommendationsPage() {
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10 w-full space-y-8">
-      <div>
-        <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+      <div className="space-y-2">
+        <p className="eyebrow">Dành cho bạn</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-primary" />
           Việc làm dành cho bạn
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           AI so khớp hồ sơ của bạn (kỹ năng, TOPIK, kinh nghiệm) với từng tin tuyển dụng và giải
           thích lý do gợi ý.
         </p>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-start gap-2">
+        <div className="p-4 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-start gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -67,21 +69,23 @@ export default function RecommendationsPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-44 rounded-2xl bg-card border border-border animate-pulse" />
+            <div key={i} className="h-44 rounded-lg bg-card border border-border animate-pulse" />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
-          <Lightbulb className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-extrabold text-lg text-foreground mb-2">Chưa có gợi ý nào</h3>
-          <p className="text-muted-foreground max-w-md mx-auto text-xs leading-relaxed">
-            Hãy cập nhật kỹ năng và trình độ TOPIK trong{' '}
-            <Link to="/candidate/profile" className="text-primary font-semibold hover:underline">
-              hồ sơ của bạn
-            </Link>{' '}
-            để AI hiểu bạn hơn nhé. 화이팅!
-          </p>
-        </div>
+        <EmptyState
+          icon={<Lightbulb className="size-6" />}
+          title="Chưa có gợi ý nào"
+          description={
+            <>
+              Hãy cập nhật kỹ năng và trình độ TOPIK trong{' '}
+              <Link to="/candidate/profile" className="text-primary font-semibold hover:underline">
+                hồ sơ của bạn
+              </Link>{' '}
+              để AI hiểu bạn hơn nhé. <span lang="ko">화이팅!</span>
+            </>
+          }
+        />
       ) : (
         <div className="space-y-5">
           {items.map((rec) => {
@@ -90,7 +94,7 @@ export default function RecommendationsPage() {
             return (
               <div
                 key={rec.jobId}
-                className="bg-card border border-border rounded-2xl p-6 space-y-4 hover:border-primary/40 transition-colors"
+                className="bg-card border border-border rounded-lg p-6 space-y-4 hover:border-primary/40 transition-colors"
               >
                 {/* Title + score */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -112,8 +116,8 @@ export default function RecommendationsPage() {
                     </div>
                   </div>
 
-                  <div className="shrink-0 text-center bg-accent rounded-xl px-4 py-3">
-                    <span className="block text-2xl font-black text-primary">{pct}%</span>
+                  <div className="shrink-0 text-center bg-accent rounded-md px-4 py-3">
+                    <span className="block font-mono text-2xl font-bold text-primary">{pct}%</span>
                     <span className="text-[10px] font-bold text-accent-foreground uppercase tracking-wide">
                       Độ phù hợp
                     </span>

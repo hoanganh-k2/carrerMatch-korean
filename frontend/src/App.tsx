@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { MessageSquare } from 'lucide-react';
+import { pageVariants } from '@/lib/motion';
 import { Button } from '@/components/ui/button';
 import { AppHeader } from '@/components/layout/app-header';
+import { SiteFooter } from '@/components/layout/site-footer';
 import { ChatbotDrawer } from '@/components/chatbot-drawer';
 import { RequireRole } from '@/components/guards/require-role';
 import { useAuth, homePathForRole, UserRole } from '@/context/auth-context';
@@ -40,13 +43,23 @@ import AdminReviewsPage from '@/pages/admin/reviews';
 export default function App() {
   const { role } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [chatbotOpen, setChatbotOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col pb-20">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
       <AppHeader onLoginClick={() => navigate('/login')} />
 
-      <Routes>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="flex-1"
+        >
+          <Routes location={location}>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/quick-match" element={<QuickMatch />} />
@@ -85,7 +98,11 @@ export default function App() {
 
         {/* Fallback */}
         <Route path="*" element={<LandingPage />} />
-      </Routes>
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+
+      <SiteFooter />
 
       {/* Floating Chatbot */}
       {(!role || role === 'candidate') && (

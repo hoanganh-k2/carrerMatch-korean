@@ -24,12 +24,12 @@ function StatCard({
   value: React.ReactNode;
 }) {
   return (
-    <div className="p-5 bg-card border border-border rounded-2xl flex items-center gap-4">
-      <div className="w-11 h-11 rounded-xl bg-accent flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5 text-primary" />
+    <div className="p-5 bg-card border border-border rounded-lg flex items-center gap-4">
+      <div className="size-11 rounded-md border border-border flex items-center justify-center shrink-0 text-primary">
+        <Icon className="w-5 h-5" />
       </div>
       <div className="leading-tight">
-        <span className="block text-xl font-extrabold text-foreground">{value}</span>
+        <span className="block font-mono text-xl font-bold text-foreground">{value}</span>
         <span className="text-xs text-muted-foreground font-medium">{label}</span>
       </div>
     </div>
@@ -70,17 +70,17 @@ export default function RecruiterDashboardPage() {
   if (!data?.company) {
     return (
       <main className="max-w-6xl mx-auto px-6 py-10 w-full">
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
+        <div className="text-center py-16 bg-card/40 border border-dashed border-border rounded-lg">
           <Building2 className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-extrabold text-lg text-foreground mb-2">
-            안녕하세요, {displayName || 'bạn'}!
+          <h3 className="font-bold text-lg text-foreground mb-2">
+            <span lang="ko">안녕하세요</span>, {displayName || 'bạn'}!
           </h3>
           <p className="text-muted-foreground text-xs mb-5">
             Tạo hồ sơ công ty để bắt đầu đăng tin và sử dụng AI matching ứng viên.
           </p>
           <Link
             to="/recruiter/company"
-            className="inline-block text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg px-5 py-2.5"
+            className="inline-block text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-md px-5 py-2.5"
           >
             Tạo hồ sơ công ty ngay
           </Link>
@@ -95,12 +95,13 @@ export default function RecruiterDashboardPage() {
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 w-full space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+        <div className="space-y-2">
+          <p className="eyebrow">Bảng điều khiển</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <LayoutDashboard className="w-6 h-6 text-primary" />
             {data.company.name}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Tổng quan hoạt động tuyển dụng của công ty bạn.
           </p>
         </div>
@@ -130,7 +131,7 @@ export default function RecruiterDashboardPage() {
       </div>
 
       {/* Funnel đơn ứng tuyển */}
-      <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+      <section className="bg-card border border-border rounded-lg p-6 space-y-4">
         <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
           Phễu tuyển dụng (Funnel)
         </h2>
@@ -159,7 +160,7 @@ export default function RecruiterDashboardPage() {
       </section>
 
       {/* Trạng thái tin */}
-      <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+      <section className="bg-card border border-border rounded-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
             Tin tuyển dụng theo trạng thái
@@ -170,8 +171,8 @@ export default function RecruiterDashboardPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           {Object.entries(data.jobPostings?.byStatus ?? {}).map(([status, count]) => (
-            <div key={status} className="px-4 py-3 bg-secondary/60 border border-border rounded-xl text-center">
-              <span className="block text-lg font-extrabold text-foreground">{count as number}</span>
+            <div key={status} className="px-4 py-3 bg-secondary/60 border border-border rounded-md text-center">
+              <span className="block font-mono text-lg font-bold text-foreground">{count as number}</span>
               <span className="text-[10px] font-bold text-muted-foreground uppercase">{status}</span>
             </div>
           ))}

@@ -28,7 +28,7 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 text-center shadow-xl">
+      <div className="w-full max-w-md bg-card border border-border rounded-lg p-8 text-center shadow-sm">
         {status === 'loading' && (
           <>
             <RefreshCw className="w-8 h-8 text-primary mx-auto mb-3 animate-spin" />

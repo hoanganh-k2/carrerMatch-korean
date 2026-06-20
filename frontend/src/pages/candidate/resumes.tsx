@@ -229,12 +229,13 @@ export default function ResumesPage() {
   return (
     <main className="max-w-4xl mx-auto px-6 py-10 w-full space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
+        <div className="space-y-2">
+          <p className="eyebrow">CV của tôi</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <FileText className="w-6 h-6 text-primary" />
             CV của tôi
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Quản lý CV chi tiết: kinh nghiệm làm việc, học vấn và chứng chỉ (TOPIK, IT...).
           </p>
         </div>
@@ -258,7 +259,7 @@ export default function ResumesPage() {
       {showCreate && (
         <form
           onSubmit={handleCreate}
-          className="bg-card border border-border rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-2"
+          className="bg-card border border-border rounded-lg p-6 space-y-4 animate-in fade-in slide-in-from-top-2"
         >
           <h2 className="text-sm font-extrabold text-foreground">CV mới</h2>
           <input
@@ -310,17 +311,17 @@ export default function ResumesPage() {
       )}
 
       {resumes.length === 0 && !showCreate ? (
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-3xl">
+        <div className="text-center py-12 bg-card/40 border border-dashed border-border rounded-lg">
           <FileText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-extrabold text-lg text-foreground mb-2">Chưa có CV nào</h3>
+          <h3 className="font-bold text-lg text-foreground mb-2">Chưa có CV nào</h3>
           <p className="text-muted-foreground text-xs mb-4">
-            Tạo CV đầu tiên để bắt đầu hành trình sự nghiệp Hàn - Việt. 화이팅!
+            Tạo CV đầu tiên để bắt đầu hành trình sự nghiệp Hàn - Việt. <span lang="ko">화이팅!</span>
           </p>
         </div>
       ) : (
         <div className="space-y-6">
           {resumes.map((resume) => (
-            <div key={resume.resumeId} className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div key={resume.resumeId} className="bg-card border border-border rounded-lg overflow-hidden">
               {/* Resume header */}
               <div className="p-5 border-b border-border bg-secondary/50 flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -486,7 +487,7 @@ export default function ResumesPage() {
               {sectionForm !== null && sectionForm.resumeId === resume.resumeId && (
                 <form
                   onSubmit={handleSectionSubmit}
-                  className="mx-5 mb-5 p-4 bg-secondary/60 border border-border rounded-xl space-y-3 animate-in fade-in"
+                  className="mx-5 mb-5 p-4 bg-secondary/60 border border-border rounded-md space-y-3 animate-in fade-in"
                 >
                   <h4 className="text-xs font-bold text-foreground">
                     {sectionForm.type === 'exp' && 'Thêm kinh nghiệm làm việc'}

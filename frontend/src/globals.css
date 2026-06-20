@@ -8,8 +8,12 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-heading);
+  --color-dancheong-blue: var(--dancheong-blue);
+  --color-dancheong-blue-foreground: var(--dancheong-blue-foreground);
+  --color-dancheong-gold: var(--dancheong-gold);
+  --color-dancheong-gold-foreground: var(--dancheong-gold-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +43,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-spark: var(--spark);
+  --color-spark-foreground: var(--spark-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,82 +54,104 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ===== KBRIDGE Theme =====
-   Light warm Korean-style palette:
-   - Hanji cream  #F7F3EE  (background)
-   - Dancheong red #C84B31 (primary)
-   - Midnight navy #1A1A2E (foreground)
+/* ===== KBRIDGE Theme — "Editorial Register" =====
+   Hệ song ngữ Việt–Hàn, editorial. Chất Hàn đến từ chữ viết & cách
+   typeset song ngữ, không phải họa tiết Dancheong.
+   - Paper / oat  #F2F1EC  (background)
+   - Ink / 먹      #181612  (foreground)
+   - 쪽 indigo     #20406A  (primary / signal)
+   - 주 vermilion  #D8492B  (spark — điểm nhấn chức năng, dùng tiết chế)
 */
 :root {
   --font-sans: 'Pretendard Variable', 'Inter', system-ui, sans-serif;
+  --font-heading: 'Hanken Grotesk', 'Pretendard Variable', 'Inter', system-ui, sans-serif;
 
-  --background: #f7f3ee;          /* Hanji cream */
-  --foreground: #1a1a2e;          /* Midnight navy */
-  --card: #ffffff;
-  --card-foreground: #1a1a2e;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a2e;
-  --primary: #c84b31;             /* Dancheong red */
-  --primary-foreground: #ffffff;
-  --secondary: #efe8df;           /* warm beige */
-  --secondary-foreground: #1a1a2e;
-  --muted: #efe8df;
-  --muted-foreground: #8a8175;    /* warm grey */
-  --accent: #f3dcd4;              /* soft dancheong tint */
-  --accent-foreground: #9a3520;
+  /* Tín hiệu phụ — indigo nhạt & ochre trầm, hài hòa với hệ editorial.
+     Giữ tên token cũ (dancheong-*) để không vỡ tham chiếu sẵn có. */
+  --dancheong-blue: #20406a;
+  --dancheong-blue-foreground: #f7f6f1;
+  --dancheong-gold: #b9892f;
+  --dancheong-gold-foreground: #f7f6f1;
+
+  /* Spark — vermilion, chỉ dùng cho điểm nhấn (match %, badge AI) */
+  --spark: #d8492b;
+  --spark-foreground: #f7f6f1;
+
+  --background: #f2f1ec;          /* Paper oat */
+  --foreground: #181612;          /* Ink */
+  --card: #fbfaf6;
+  --card-foreground: #181612;
+  --popover: #fbfaf6;
+  --popover-foreground: #181612;
+  --primary: #20406a;             /* 쪽 indigo */
+  --primary-foreground: #f7f6f1;
+  --secondary: #e7e5dc;           /* muted oat */
+  --secondary-foreground: #181612;
+  --muted: #e7e5dc;
+  --muted-foreground: #6b6658;    /* warm grey (AA trên paper) */
+  --accent: #dee3ec;              /* soft indigo tint */
+  --accent-foreground: #20406a;
   --destructive: #b3261e;
-  --border: #e6ddd1;
-  --input: #e6ddd1;
-  --ring: #c84b31;
-  --chart-1: #c84b31;
-  --chart-2: #1a1a2e;
-  --chart-3: #d98e63;
-  --chart-4: #4a4a68;
-  --chart-5: #8a8175;
-  --radius: 0.75rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1a1a2e;
-  --sidebar-primary: #c84b31;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f3dcd4;
-  --sidebar-accent-foreground: #9a3520;
-  --sidebar-border: #e6ddd1;
-  --sidebar-ring: #c84b31;
+  --border: #e2ded3;
+  --input: #e2ded3;
+  --ring: #20406a;
+  --chart-1: #20406a;
+  --chart-2: #181612;
+  --chart-3: #d8492b;
+  --chart-4: #b9892f;
+  --chart-5: #6b6658;
+  --radius: 0.375rem;
+  --sidebar: #fbfaf6;
+  --sidebar-foreground: #181612;
+  --sidebar-primary: #20406a;
+  --sidebar-primary-foreground: #f7f6f1;
+  --sidebar-accent: #dee3ec;
+  --sidebar-accent-foreground: #20406a;
+  --sidebar-border: #e2ded3;
+  --sidebar-ring: #20406a;
 }
 
-/* Dark mode phụ (nền navy đêm) — không bật mặc định */
+/* Dark mode — ink-on-deeper-ink, indigo sáng hơn làm tín hiệu */
 .dark {
-  --background: #1a1a2e;
-  --foreground: #f7f3ee;
-  --card: #232338;
-  --card-foreground: #f7f3ee;
-  --popover: #232338;
-  --popover-foreground: #f7f3ee;
-  --primary: #d96a50;
-  --primary-foreground: #ffffff;
-  --secondary: #2c2c44;
-  --secondary-foreground: #f7f3ee;
-  --muted: #2c2c44;
-  --muted-foreground: #a9a294;
-  --accent: #3a2a26;
-  --accent-foreground: #e8b3a4;
+  --dancheong-blue: #6b92c9;
+  --dancheong-blue-foreground: #0e1422;
+  --dancheong-gold: #d8ab5a;
+  --dancheong-gold-foreground: #1c1812;
+
+  --spark: #f0613f;
+  --spark-foreground: #14130f;
+
+  --background: #14130f;          /* deep ink */
+  --foreground: #eceae0;
+  --card: #1c1b16;
+  --card-foreground: #eceae0;
+  --popover: #1c1b16;
+  --popover-foreground: #eceae0;
+  --primary: #6b92c9;             /* indigo sáng */
+  --primary-foreground: #0e1422;
+  --secondary: #26241d;
+  --secondary-foreground: #eceae0;
+  --muted: #26241d;
+  --muted-foreground: #a6a193;
+  --accent: #232b3a;
+  --accent-foreground: #b9cbe6;
   --destructive: #e5484d;
-  --border: #34344f;
-  --input: #34344f;
-  --ring: #d96a50;
-  --chart-1: #d96a50;
-  --chart-2: #f7f3ee;
-  --chart-3: #d98e63;
-  --chart-4: #8888aa;
-  --chart-5: #a9a294;
-  --sidebar: #232338;
-  --sidebar-foreground: #f7f3ee;
-  --sidebar-primary: #d96a50;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #3a2a26;
-  --sidebar-accent-foreground: #e8b3a4;
-  --sidebar-border: #34344f;
-  --sidebar-ring: #d96a50;
+  --border: #2e2c24;
+  --input: #2e2c24;
+  --ring: #6b92c9;
+  --chart-1: #6b92c9;
+  --chart-2: #eceae0;
+  --chart-3: #f0613f;
+  --chart-4: #d8ab5a;
+  --chart-5: #a6a193;
+  --sidebar: #1c1b16;
+  --sidebar-foreground: #eceae0;
+  --sidebar-primary: #6b92c9;
+  --sidebar-primary-foreground: #0e1422;
+  --sidebar-accent: #232b3a;
+  --sidebar-accent-foreground: #b9cbe6;
+  --sidebar-border: #2e2c24;
+  --sidebar-ring: #6b92c9;
 }
 
 @layer base {
@@ -135,5 +163,70 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Heading dùng display face (Space Grotesk) cho cá tính */
+  h1, h2, h3, h4, .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+  }
+  /* Icon (lucide) nét mảnh, đơn sắc — bớt cảm giác "AI" */
+  svg.lucide {
+    stroke-width: 1.5px;
+  }
+}
+
+@layer components {
+  /* Eyebrow — nhãn nhỏ trên tiêu đề, dùng thay cho các text-[10/11px] rời rạc */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  /* Chữ ký — mô-típ "cây cầu": đường kẻ hairline có node vermilion ở giữa,
+     biểu đạt điểm nối Việt ↔ Hàn. Dùng làm divider giữa các section. */
+  .bridge-rule {
+    position: relative;
+    border-top: 1px solid var(--border);
+  }
+  .bridge-rule::after {
+    content: "";
+    position: absolute;
+    top: -3.5px;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    transform: translateX(-50%) rotate(45deg);
+    background: var(--spark);
+  }
+
+  /* Hairline register rule — đường kẻ mảnh ngăn section, chất editorial */
+  .register-rule {
+    @apply border-t border-border;
+  }
+}
+
+/* Lenis (cuộn mượt) — style khuyến nghị */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Tôn trọng prefers-reduced-motion: tắt animation/parallax/cuộn mượt */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

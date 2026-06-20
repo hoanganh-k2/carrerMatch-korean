@@ -94,7 +94,7 @@ export default function CompanyDetailPage() {
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h1 className="text-xl md:text-2xl font-extrabold text-foreground">{company.companyName}</h1>
               {company.isVerified && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
                   Đã xác thực
                 </span>
               )}

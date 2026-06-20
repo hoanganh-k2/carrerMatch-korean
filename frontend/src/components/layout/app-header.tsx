@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Bell, LogIn, LogOut, Trash2, Camera, Loader2, Settings } from 'lucide-react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Bell, LogIn, LogOut, Trash2, Camera, Loader2, Settings, Sparkles, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
+import { QuickMatch } from '@/components/quick-match';
 import { useAuth } from '@/context/auth-context';
 import {
   fetchNotifications,
@@ -47,6 +49,7 @@ const PUBLIC_NAV = [
 export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
   const { token, role, email, displayName, avatarUrl, signOut, updateAvatar } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Upload avatar
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -77,6 +80,16 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
   // User dropdown
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Mobile nav + QuickMatch drawer
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+
+  // Đóng menu/drawer khi chuyển trang
+  useEffect(() => {
+    setMobileOpen(false);
+    setQuickOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -157,15 +170,16 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
     role === 'candidate' ? 'Ứng viên' : role === 'recruiter' ? 'Nhà tuyển dụng' : 'Admin';
 
   return (
+    <>
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
         {/* Logo KBRIDGE */}
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/25">
-            <span className="font-extrabold text-lg text-primary-foreground tracking-tighter">K</span>
+          <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center">
+            <span className="font-heading font-extrabold text-lg text-primary-foreground tracking-tighter">K</span>
           </div>
           <div className="leading-none">
-            <span className="font-extrabold text-lg tracking-tight text-foreground">
+            <span className="font-heading font-extrabold text-lg tracking-tight text-foreground">
               K<span className="text-primary">BRIDGE</span>
             </span>
             <span className="block text-[9px] font-semibold text-muted-foreground tracking-[0.18em] uppercase mt-0.5">
@@ -195,7 +209,26 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Tìm việc nhanh — mở QuickMatch ở mọi trang */}
+          <Button
+            onClick={() => setQuickOpen(true)}
+            variant="ghost"
+            className="hidden sm:inline-flex rounded-lg bg-dancheong-gold/15 text-dancheong-gold hover:bg-dancheong-gold/25 text-xs font-bold py-2 px-3 gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Tìm nhanh
+          </Button>
+          <Button
+            onClick={() => setQuickOpen(true)}
+            variant="ghost"
+            size="icon"
+            aria-label="Tìm việc nhanh"
+            className="sm:hidden w-9 h-9 rounded-lg border border-border bg-dancheong-gold/10 text-dancheong-gold"
+          >
+            <Sparkles className="w-4.5 h-4.5" />
+          </Button>
+
           {/* Chuông thông báo */}
           {token && (
             <div className="relative" ref={notifRef}>
@@ -375,8 +408,81 @@ export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
               </Button>
             </div>
           )}
+
+          {/* Hamburger (mobile) */}
+          <Button
+            onClick={() => setMobileOpen((v) => !v)}
+            variant="ghost"
+            size="icon"
+            aria-label="Mở menu"
+            aria-expanded={mobileOpen}
+            className="md:hidden w-9 h-9 rounded-lg border border-border text-foreground"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
         </div>
       </div>
+
+      {/* Mobile nav panel */}
+      {mobileOpen && (
+        <nav className="md:hidden border-t border-border bg-background/95 backdrop-blur-md">
+          <Container size="wide" className="flex flex-col gap-1 py-3 text-sm font-semibold">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                onClick={() => setMobileOpen(false)}
+                end={link.to === '/' || link.to === '/jobs' || link.to === '/companies' || link.to === '/candidate' || link.to === '/recruiter' || link.to === '/admin'}
+                className={({ isActive }) =>
+                  `px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-primary bg-accent'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </Container>
+        </nav>
+      )}
     </header>
+
+    {/* Drawer Tìm việc nhanh (QuickMatch) — truy cập từ mọi trang */}
+    {quickOpen && (
+      <div className="fixed inset-0 z-50 flex justify-end">
+        <div
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => setQuickOpen(false)}
+        />
+        <div
+          data-lenis-prevent
+          className="relative h-full w-full max-w-xl overflow-y-auto bg-background shadow-2xl"
+        >
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-5 py-4 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="font-heading text-base font-bold text-foreground">
+                Tìm việc nhanh
+              </span>
+            </div>
+            <Button
+              onClick={() => setQuickOpen(false)}
+              variant="ghost"
+              size="icon"
+              aria-label="Đóng"
+              className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-secondary"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="p-5">
+            <QuickMatch variant="bare" />
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
