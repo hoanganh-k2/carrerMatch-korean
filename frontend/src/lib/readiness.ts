@@ -1,6 +1,6 @@
 /**
  * Logic chấm "Mức độ sẵn sàng thị trường Hàn" (0–100) + danh hiệu dí dỏm.
- * Dùng chung cho ứng viên đăng nhập (từ hồ sơ thật) và khách (mini-quiz).
+ * Dùng chung cho ứng viên đăng nhập (hồ sơ thật) và khách (mini-quiz).
  *
  * LƯU Ý: bảng danh hiệu theo bậc phải ĐỒNG BỘ với backend
  * `readinessRankTitle()` trong backend/src/share/share.controller.ts.
@@ -20,10 +20,10 @@ export interface ReadinessBreakdownItem {
 }
 
 export interface ReadinessResult {
-  score: number; // 0–100
-  title: string; // danh hiệu (khớp backend)
-  emoji: string; // emoji to để hiển thị
-  tip: string; // câu cà khịa/gợi ý
+  score: number;   // 0–100
+  title: string;   // danh hiệu (khớp backend)
+  emoji: string;
+  tip: string;
   breakdown: ReadinessBreakdownItem[];
 }
 
@@ -38,11 +38,7 @@ const TOPIK_POINTS: Record<string, number> = {
 };
 
 /** Danh hiệu + emoji + tip theo bậc điểm */
-export function readinessRank(score: number): {
-  title: string;
-  emoji: string;
-  tip: string;
-} {
+export function readinessRank(score: number): { title: string; emoji: string; tip: string } {
   if (score >= 85)
     return {
       title: 'Oppa tổng tài đang chờ ký HĐ 🔥',
@@ -80,10 +76,7 @@ export function computeReadiness(input: ReadinessInput): ReadinessResult {
   const expPts = Math.min((input.yearsExperience ?? 0) / 5, 1) * 100;
   const krPts = input.isBrSE ? 100 : input.hasKoreanRole ? 60 : 0;
 
-  const score = Math.round(
-    0.4 * topikPts + 0.25 * skillPts + 0.2 * expPts + 0.15 * krPts,
-  );
-
+  const score = Math.round(0.4 * topikPts + 0.25 * skillPts + 0.2 * expPts + 0.15 * krPts);
   const { title, emoji, tip } = readinessRank(score);
 
   return {

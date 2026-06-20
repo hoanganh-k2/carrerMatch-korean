@@ -1,488 +1,199 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Bell, LogIn, LogOut, Trash2, Camera, Loader2, Settings, Sparkles, Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Menu, X, LogOut, Settings, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { useAuth, homePathForRole } from '@/context/auth-context';
+import { getUploadedFileUrl } from '@/lib/api';
 import { Container } from '@/components/ui/container';
-import { QuickMatch } from '@/components/quick-match';
-import { useAuth } from '@/context/auth-context';
-import {
-  fetchNotifications,
-  fetchUnreadNotificationsCount,
-  markNotificationRead,
-  markAllNotificationsRead,
-  deleteNotification,
-  uploadFile,
-  updateMyAccount,
-  getUploadedFileUrl,
-} from '@/lib/api';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { GridMark } from '@/components/ui/grid-mark';
+import { NotificationsMenu } from '@/components/layout/notifications-menu';
+import { cn } from '@/lib/utils';
 
-const NAV_BY_ROLE: Record<string, Array<{ to: string; label: string }>> = {
-  candidate: [
-    { to: '/jobs', label: 'Tìm việc' },
-    { to: '/candidate/recommendations', label: 'Dành cho bạn' },
-    { to: '/candidate', label: 'Dashboard' },
-    { to: '/candidate/resumes', label: 'CV của tôi' },
-    { to: '/candidate/saved', label: 'Đã lưu' },
-    { to: '/candidate/profile', label: 'Hồ sơ' },
-  ],
-  recruiter: [
-    { to: '/jobs', label: 'Việc làm' },
-    { to: '/recruiter', label: 'Dashboard' },
-    { to: '/recruiter/jobs', label: 'Tin tuyển dụng' },
-    { to: '/recruiter/company', label: 'Công ty' },
-  ],
-  admin: [
-    { to: '/jobs', label: 'Việc làm' },
-    { to: '/admin', label: 'Quản trị' },
-    { to: '/admin/users', label: 'Người dùng' },
-    { to: '/admin/jobs', label: 'Kiểm duyệt tin' },
-    { to: '/admin/reviews', label: 'Đánh giá' },
-  ],
-};
-
-const PUBLIC_NAV = [
-  { to: '/', label: 'Trang chủ' },
-  { to: '/jobs', label: 'Việc làm' },
-  { to: '/companies', label: 'Công ty' },
+const NAV = [
+  { to: '/jobs', label: 'Việc làm', kr: '채용' },
+  { to: '/companies', label: 'Công ty', kr: '기업' },
+  { to: '/quick-match', label: 'Quick Match', kr: '매칭' },
+  { to: '/readiness', label: 'Độ sẵn sàng', kr: '준비도' },
 ];
 
 export function AppHeader({ onLoginClick }: { onLoginClick: () => void }) {
-  const { token, role, email, displayName, avatarUrl, signOut, updateAvatar } = useAuth();
+  const { token, displayName, avatarUrl, role, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Upload avatar
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!token || !file) return;
-    setUploadingAvatar(true);
-    try {
-      const { url } = await uploadFile(file, 'avatar', token);
-      await updateMyAccount({ avatarUrl: url }, token);
-      updateAvatar(url);
-    } catch (err: any) {
-      alert(err.message || 'Tải ảnh đại diện thất bại');
-    } finally {
-      setUploadingAvatar(false);
-      if (avatarInputRef.current) avatarInputRef.current.value = '';
-    }
-  };
-
-  // Notifications
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
-
-  // User dropdown
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-
-  // Mobile nav + QuickMatch drawer
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [quickOpen, setQuickOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Đóng menu/drawer khi chuyển trang
+  // Đóng menu khi đổi route
   useEffect(() => {
     setMobileOpen(false);
-    setQuickOpen(false);
+    setMenuOpen(false);
   }, [location.pathname]);
 
+  // Đóng dropdown khi click ra ngoài
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (!menuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [menuOpen]);
 
-  const loadNotifications = async () => {
-    if (!token) return;
-    try {
-      const [notifs, countData] = await Promise.all([
-        fetchNotifications(token),
-        fetchUnreadNotificationsCount(token),
-      ]);
-      setNotifications(notifs);
-      setUnreadCount(countData.unreadCount);
-    } catch (err) {
-      console.error('Lỗi tải thông báo:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (token) {
-      loadNotifications();
-    } else {
-      setNotifications([]);
-      setUnreadCount(0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  const handleMarkAsRead = async (id: string) => {
-    if (!token) return;
-    try {
-      await markNotificationRead(id, token);
-      loadNotifications();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleMarkAllRead = async () => {
-    if (!token) return;
-    try {
-      await markAllNotificationsRead(token);
-      loadNotifications();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeleteNotification = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!token) return;
-    try {
-      await deleteNotification(id, token);
-      loadNotifications();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleLogout = () => {
-    setShowUserMenu(false);
+  const handleSignOut = () => {
     signOut();
     navigate('/');
   };
 
-  const navLinks = role ? NAV_BY_ROLE[role] : PUBLIC_NAV;
-  const roleLabel =
-    role === 'candidate' ? 'Ứng viên' : role === 'recruiter' ? 'Nhà tuyển dụng' : 'Admin';
+  const avatar = getUploadedFileUrl(avatarUrl);
+  const initial = (displayName ?? '?').trim().charAt(0).toUpperCase();
 
   return (
-    <>
-    <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-        {/* Logo KBRIDGE */}
-        <Link to="/" className="flex items-center gap-2.5 shrink-0">
-          <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center">
-            <span className="font-heading font-extrabold text-lg text-primary-foreground tracking-tighter">K</span>
-          </div>
-          <div className="leading-none">
-            <span className="font-heading font-extrabold text-lg tracking-tight text-foreground">
-              K<span className="text-primary">BRIDGE</span>
-            </span>
-            <span className="block text-[9px] font-semibold text-muted-foreground tracking-[0.18em] uppercase mt-0.5">
-              IT 한국어 Careers
-            </span>
-          </div>
+    <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <Container className="flex h-16 items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-2.5 text-foreground">
+          <GridMark size={26} />
+          <span className="font-display text-lg font-extrabold tracking-tight">KBRIDGE</span>
         </Link>
 
-        {/* Navigation theo role */}
-        <nav className="hidden md:flex items-center gap-1 text-sm font-semibold">
-          {navLinks.map((link) => (
+        {/* Nav desktop */}
+        <nav className="hidden items-center gap-1 md:flex">
+          {NAV.map((item) => (
             <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.to === '/' || link.to === '/jobs' || link.to === '/companies' || link.to === '/candidate' || link.to === '/recruiter' || link.to === '/admin'}
+              key={item.to}
+              to={item.to}
               className={({ isActive }) =>
-                `px-3 py-2 rounded-lg transition-colors ${
-                  isActive
-                    ? 'text-primary bg-accent'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                }`
+                cn(
+                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground',
+                )
               }
             >
-              {link.label}
+              {item.label}
             </NavLink>
           ))}
         </nav>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Tìm việc nhanh — mở QuickMatch ở mọi trang */}
-          <Button
-            onClick={() => setQuickOpen(true)}
-            variant="ghost"
-            className="hidden sm:inline-flex rounded-lg bg-dancheong-gold/15 text-dancheong-gold hover:bg-dancheong-gold/25 text-xs font-bold py-2 px-3 gap-1.5"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Tìm nhanh
-          </Button>
-          <Button
-            onClick={() => setQuickOpen(true)}
-            variant="ghost"
-            size="icon"
-            aria-label="Tìm việc nhanh"
-            className="sm:hidden w-9 h-9 rounded-lg border border-border bg-dancheong-gold/10 text-dancheong-gold"
-          >
-            <Sparkles className="w-4.5 h-4.5" />
-          </Button>
-
-          {/* Chuông thông báo */}
-          {token && (
-            <div className="relative" ref={notifRef}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative w-9 h-9 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
-              >
-                <Bell className="w-4.5 h-4.5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center shadow-md">
-                    {unreadCount}
-                  </span>
-                )}
+        {/* Hành động bên phải */}
+        <div className="flex items-center gap-2">
+          {!token ? (
+            <>
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={onLoginClick}>
+                Đăng nhập
               </Button>
-
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-popover border border-border rounded-xl shadow-xl overflow-hidden z-50 flex flex-col max-h-[360px]">
-                  <div className="px-4 py-3 bg-secondary border-b border-border flex items-center justify-between text-xs">
-                    <span className="font-bold text-foreground">Thông báo của bạn</span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllRead}
-                        className="text-primary hover:underline font-semibold text-[11px]"
-                      >
-                        Đọc tất cả
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex-1 overflow-y-auto divide-y divide-border">
-                    {notifications.length === 0 ? (
-                      <div className="py-10 text-center text-muted-foreground text-xs italic">
-                        Không có thông báo nào
-                      </div>
-                    ) : (
-                      notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          onClick={() => handleMarkAsRead(notif.id)}
-                          className={`p-3 text-left cursor-pointer flex gap-2 justify-between items-start transition-colors ${
-                            !notif.isRead ? 'bg-accent/60 hover:bg-accent' : 'hover:bg-secondary'
-                          }`}
-                        >
-                          <div className="space-y-1 flex-1">
-                            <span className="text-[10px] font-bold text-primary tracking-wider uppercase block">
-                              {notif.title}
-                            </span>
-                            <p className="text-foreground/80 text-[11px] leading-relaxed">{notif.message}</p>
-                            <span className="text-[9px] text-muted-foreground block">
-                              {new Date(notif.createdAt).toLocaleDateString('vi-VN')}
-                            </span>
-                          </div>
-                          <button
-                            onClick={(e) => handleDeleteNotification(notif.id, e)}
-                            className="text-muted-foreground hover:text-destructive p-0.5 rounded transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Tài khoản */}
-          {token ? (
-            <div className="relative" ref={userMenuRef}>
-              <Button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                variant="ghost"
-                className="rounded-lg text-xs font-bold py-2 px-2.5 flex items-center gap-2 border border-border hover:bg-secondary"
-              >
-                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center overflow-hidden">
-                  {avatarUrl ? (
-                    <img
-                      src={getUploadedFileUrl(avatarUrl)}
-                      alt="avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-[10px] font-extrabold text-primary-foreground">
-                      {(displayName || email || 'U').charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <span className="hidden sm:inline max-w-[120px] truncate text-foreground">
-                  {displayName || email}
-                </span>
-              </Button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-60 bg-popover border border-border rounded-xl shadow-xl overflow-hidden z-50">
-                  <div className="px-4 py-3 bg-secondary border-b border-border flex items-center gap-3">
-                    {/* Avatar có thể bấm để đổi ảnh */}
-                    <button
-                      type="button"
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={uploadingAvatar}
-                      title="Đổi ảnh đại diện"
-                      className="relative w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden shrink-0 group"
-                    >
-                      {avatarUrl ? (
-                        <img
-                          src={getUploadedFileUrl(avatarUrl)}
-                          alt="avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-base font-extrabold text-primary-foreground">
-                          {(displayName || email || 'U').charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      <span className="absolute inset-0 bg-black/45 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        {uploadingAvatar ? (
-                          <Loader2 className="w-4 h-4 text-white animate-spin" />
-                        ) : (
-                          <Camera className="w-4 h-4 text-white" />
-                        )}
-                      </span>
-                    </button>
-                    <input
-                      ref={avatarInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png"
-                      onChange={handleAvatarUpload}
-                      className="hidden"
-                    />
-                    <div className="min-w-0">
-                      <span className="block font-bold text-xs text-foreground truncate">{displayName}</span>
-                      <span className="block text-[11px] text-muted-foreground truncate">{email}</span>
-                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-accent text-accent-foreground">
-                        {roleLabel}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-1.5">
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        navigate('/account/settings');
-                      }}
-                      className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold text-foreground hover:bg-secondary flex items-center gap-2 transition-all"
-                    >
-                      <Settings className="w-3.5 h-3.5" />
-                      <span>Cài đặt tài khoản</span>
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold text-destructive hover:bg-destructive/10 flex items-center gap-2 transition-all"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Đăng xuất</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+              <Link to="/register" className={cn(buttonVariants({ size: 'sm' }), 'hidden sm:inline-flex')}>
+                Đăng ký
+              </Link>
+            </>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={onLoginClick}
-                variant="ghost"
-                className="rounded-lg text-xs font-bold py-2 px-3 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+            <>
+            <div className="hidden md:block"><NotificationsMenu /></div>
+            <div className="relative hidden md:block" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="flex items-center gap-2 rounded-md py-1 pl-1 pr-2 transition-colors hover:bg-accent"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
               >
-                <LogIn className="w-3.5 h-3.5 mr-1.5" />
-                <span>Đăng nhập</span>
-              </Button>
-              <Button
-                onClick={() => navigate('/register')}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold py-2 px-4 shadow-md shadow-primary/20"
-              >
-                <span>Đăng ký</span>
-              </Button>
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                  {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initial}
+                </span>
+                <span className="max-w-[10rem] truncate text-sm font-medium">{displayName}</span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-lg"
+                >
+                  <MenuItem to={homePathForRole(role)} icon={<LayoutDashboard className="h-4 w-4" />}>
+                    Bảng điều khiển
+                  </MenuItem>
+                  <MenuItem to="/account/settings" icon={<Settings className="h-4 w-4" />}>
+                    Cài đặt tài khoản
+                  </MenuItem>
+                  <div className="my-1 border-t border-border" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-destructive transition-colors hover:bg-accent"
+                  >
+                    <LogOut className="h-4 w-4" /> Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
+            </>
           )}
 
-          {/* Hamburger (mobile) */}
-          <Button
-            onClick={() => setMobileOpen((v) => !v)}
-            variant="ghost"
-            size="icon"
+          {/* Hamburger mobile */}
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent md:hidden"
+            onClick={() => setMobileOpen((o) => !o)}
             aria-label="Mở menu"
-            aria-expanded={mobileOpen}
-            className="md:hidden w-9 h-9 rounded-lg border border-border text-foreground"
           >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
-      </div>
+      </Container>
 
-      {/* Mobile nav panel */}
+      {/* Nav mobile */}
       {mobileOpen && (
-        <nav className="md:hidden border-t border-border bg-background/95 backdrop-blur-md">
-          <Container size="wide" className="flex flex-col gap-1 py-3 text-sm font-semibold">
-            {navLinks.map((link) => (
+        <div className="border-t border-border bg-background md:hidden">
+          <Container className="flex flex-col py-3">
+            {NAV.map((item) => (
               <NavLink
-                key={link.to}
-                to={link.to}
-                onClick={() => setMobileOpen(false)}
-                end={link.to === '/' || link.to === '/jobs' || link.to === '/companies' || link.to === '/candidate' || link.to === '/recruiter' || link.to === '/admin'}
+                key={item.to}
+                to={item.to}
                 className={({ isActive }) =>
-                  `px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive
-                      ? 'text-primary bg-accent'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                  }`
+                  cn(
+                    'flex items-center justify-between rounded-md px-3 py-3 text-base font-medium',
+                    isActive ? 'bg-accent text-accent-foreground' : 'text-foreground',
+                  )
                 }
               >
-                {link.label}
+                {item.label}
+                <span className="bilingual-kr" lang="ko" aria-hidden="true">{item.kr}</span>
               </NavLink>
             ))}
+            <div className="my-2 border-t border-border" />
+            {!token ? (
+              <div className="flex gap-2 px-1">
+                <Button variant="outline" className="flex-1" onClick={onLoginClick}>Đăng nhập</Button>
+                <Link to="/register" className={cn(buttonVariants(), 'flex-1')}>Đăng ký</Link>
+              </div>
+            ) : (
+              <>
+                <Link to={homePathForRole(role)} className="rounded-md px-3 py-3 text-base font-medium text-foreground">
+                  Bảng điều khiển
+                </Link>
+                <Link to="/account/settings" className="rounded-md px-3 py-3 text-base font-medium text-foreground">
+                  Cài đặt tài khoản
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="rounded-md px-3 py-3 text-left text-base font-medium text-destructive"
+                >
+                  Đăng xuất
+                </button>
+              </>
+            )}
           </Container>
-        </nav>
+        </div>
       )}
     </header>
+  );
+}
 
-    {/* Drawer Tìm việc nhanh (QuickMatch) — truy cập từ mọi trang */}
-    {quickOpen && (
-      <div className="fixed inset-0 z-50 flex justify-end">
-        <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={() => setQuickOpen(false)}
-        />
-        <div
-          data-lenis-prevent
-          className="relative h-full w-full max-w-xl overflow-y-auto bg-background shadow-2xl"
-        >
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-5 py-4 backdrop-blur-md">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="font-heading text-base font-bold text-foreground">
-                Tìm việc nhanh
-              </span>
-            </div>
-            <Button
-              onClick={() => setQuickOpen(false)}
-              variant="ghost"
-              size="icon"
-              aria-label="Đóng"
-              className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-secondary"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="p-5">
-            <QuickMatch variant="bare" />
-          </div>
-        </div>
-      </div>
-    )}
-    </>
+function MenuItem({ to, icon, children }: { to: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Link role="menuitem" to={to} className="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-accent">
+      {icon} {children}
+    </Link>
   );
 }

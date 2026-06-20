@@ -1,253 +1,167 @@
-import React, { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Lock, Mail, Trash2, ShieldCheck, ShieldAlert, RefreshCw, CheckCircle2, AlertCircle,
-} from 'lucide-react';
-import {
-  fetchProfile, changePassword, updateMyAccount, deleteMyAccount, resendVerifyEmail,
-} from '@/lib/api';
+import { Camera } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { uploadFile, updateMyAccount, changePassword, deleteMyAccount, getUploadedFileUrl } from '@/lib/api';
+import { Container } from '@/components/ui/container';
+import { Section } from '@/components/ui/section';
+import { PageHeader } from '@/components/ui/page-header';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
-const inputClass =
-  'w-full px-4 py-3 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
-const labelClass =
-  'text-[11px] font-semibold text-muted-foreground uppercase tracking-wider';
-const cardClass = 'bg-card border border-border rounded-lg p-6 shadow-sm';
-
-function Banner({ type, text }: { type: 'success' | 'error'; text: string }) {
-  const ok = type === 'success';
-  return (
-    <div
-      className={`mb-4 p-3 rounded-md border text-[11px] flex items-start gap-2 ${
-        ok
-          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600'
-          : 'bg-destructive/5 border-destructive/20 text-destructive'
-      }`}
-    >
-      {ok ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />}
-      <span>{text}</span>
-    </div>
-  );
+function Note({ tone, children }: { tone: 'ok' | 'err'; children: React.ReactNode }) {
+  if (!children) return null;
+  return <p className={tone === 'ok' ? 'text-sm text-primary' : 'text-sm text-destructive'}>{children}</p>;
 }
 
-export default function AccountSettingsPage() {
-  const { token, signOut } = useAuth();
+export function AccountSettingsPage() {
+  const { token, email, displayName, avatarUrl, updateAvatar, signOut } = useAuth();
   const navigate = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const [email, setEmail] = useState('');
-  const [isVerified, setIsVerified] = useState(true);
+  const [newEmail, setNewEmail] = useState(email ?? '');
+  const [accMsg, setAccMsg] = useState('');
+  const [accErr, setAccErr] = useState('');
+  const [savingAcc, setSavingAcc] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [pwLoading, setPwLoading] = useState(false);
+  const [curPw, setCurPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [pwMsg, setPwMsg] = useState('');
+  const [pwErr, setPwErr] = useState('');
+  const [savingPw, setSavingPw] = useState(false);
 
-  const [newEmail, setNewEmail] = useState('');
-  const [emailMsg, setEmailMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [emailLoading, setEmailLoading] = useState(false);
+  if (!token) return null;
 
-  const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
-  useEffect(() => {
-    if (!token) return;
-    fetchProfile(token)
-      .then((p) => {
-        setEmail(p.email ?? '');
-        setNewEmail(p.email ?? '');
-        setIsVerified(Boolean(p.isEmailVerified));
-      })
-      .catch(() => {});
-  }, [token]);
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    if (newPassword.length < 8) {
-      setPwMsg({ type: 'error', text: 'Mật khẩu mới phải có ít nhất 8 ký tự.' });
-      return;
-    }
-    setPwLoading(true);
-    setPwMsg(null);
+  const onAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAccErr('');
     try {
-      await changePassword({ currentPassword, newPassword }, token);
-      setPwMsg({ type: 'success', text: 'Đổi mật khẩu thành công.' });
-      setCurrentPassword('');
-      setNewPassword('');
-    } catch (err: any) {
-      setPwMsg({ type: 'error', text: err.message || 'Đổi mật khẩu thất bại.' });
+      const { url } = await uploadFile(file, 'avatar', token);
+      await updateMyAccount({ avatarUrl: url }, token);
+      updateAvatar(getUploadedFileUrl(url));
+      setAccMsg('Đã cập nhật ảnh đại diện.');
+    } catch (err) {
+      setAccErr(err instanceof Error ? err.message : 'Tải ảnh thất bại');
+    }
+  };
+
+  const saveEmail = async () => {
+    setSavingAcc(true); setAccMsg(''); setAccErr('');
+    try {
+      await updateMyAccount({ email: newEmail }, token);
+      setAccMsg('Đã lưu thông tin tài khoản.');
+    } catch (err) {
+      setAccErr(err instanceof Error ? err.message : 'Cập nhật thất bại');
     } finally {
-      setPwLoading(false);
+      setSavingAcc(false);
     }
   };
 
-  const handleChangeEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    setEmailLoading(true);
-    setEmailMsg(null);
+  const savePassword = async () => {
+    setSavingPw(true); setPwMsg(''); setPwErr('');
     try {
-      await updateMyAccount({ email: newEmail.trim() }, token);
-      setEmail(newEmail.trim());
-      setEmailMsg({ type: 'success', text: 'Cập nhật email thành công.' });
-    } catch (err: any) {
-      setEmailMsg({ type: 'error', text: err.message || 'Cập nhật email thất bại.' });
+      await changePassword({ currentPassword: curPw, newPassword: newPw }, token);
+      setPwMsg('Đã đổi mật khẩu.');
+      setCurPw(''); setNewPw('');
+    } catch (err) {
+      setPwErr(err instanceof Error ? err.message : 'Đổi mật khẩu thất bại');
     } finally {
-      setEmailLoading(false);
+      setSavingPw(false);
     }
   };
 
-  const handleResendVerify = async () => {
-    if (!token) return;
-    try {
-      const res = await resendVerifyEmail(token);
-      setVerifyMsg(res.message || 'Đã gửi lại email xác minh.');
-    } catch (err: any) {
-      setVerifyMsg(err.message || 'Gửi lại email xác minh thất bại.');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!token) return;
+  const removeAccount = async () => {
+    if (!confirm('Bạn chắc chắn muốn xoá tài khoản? Hành động này không thể hoàn tác.')) return;
     try {
       await deleteMyAccount(token);
       signOut();
-      navigate('/', { replace: true });
-    } catch (err: any) {
-      setVerifyMsg(err.message || 'Xóa tài khoản thất bại.');
+      navigate('/');
+    } catch (err) {
+      setAccErr(err instanceof Error ? err.message : 'Xoá tài khoản thất bại');
     }
   };
 
+  const avatar = getUploadedFileUrl(avatarUrl);
+  const initial = (displayName ?? '?').trim().charAt(0).toUpperCase();
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
-      <div className="space-y-2">
-        <p className="eyebrow">Tài khoản</p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Cài đặt tài khoản</h1>
-        <p className="text-xs text-muted-foreground">Quản lý bảo mật và thông tin đăng nhập của bạn.</p>
-      </div>
+    <Section>
+      <Container className="max-w-2xl">
+        <PageHeader kr="계정 설정" eyebrow="Tài khoản" title="Cài đặt tài khoản" />
 
-      {/* Trạng thái xác minh email */}
-      <div className={cardClass}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {isVerified ? (
-              <ShieldCheck className="w-6 h-6 text-emerald-500" />
-            ) : (
-              <ShieldAlert className="w-6 h-6 text-amber-500" />
-            )}
-            <div>
-              <p className="text-sm font-bold text-foreground">{email}</p>
-              <p className={`text-[11px] font-semibold ${isVerified ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {isVerified ? 'Email đã được xác minh' : 'Email chưa xác minh'}
-              </p>
-            </div>
-          </div>
-          {!isVerified && (
-            <button
-              onClick={handleResendVerify}
-              className="text-[11px] font-semibold text-primary hover:underline shrink-0"
-            >
-              Gửi lại email xác minh
-            </button>
-          )}
-        </div>
-        {verifyMsg && <p className="mt-3 text-[11px] text-muted-foreground">{verifyMsg}</p>}
-      </div>
+        <div className="mt-8 flex flex-col gap-6">
+          {/* Thông tin tài khoản */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Thông tin tài khoản</CardTitle>
+              <CardDescription>Ảnh đại diện và email đăng nhập.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="group relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-primary text-xl font-semibold text-primary-foreground"
+                >
+                  {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initial}
+                  <span className="absolute inset-0 flex items-center justify-center bg-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Camera className="h-5 w-5 text-background" />
+                  </span>
+                </button>
+                <div>
+                  <p className="font-medium">{displayName}</p>
+                  <button type="button" onClick={() => fileRef.current?.click()} className="text-sm text-primary hover:underline">Đổi ảnh đại diện</button>
+                </div>
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={onAvatar} />
+              </div>
 
-      {/* Đổi email */}
-      <div className={cardClass}>
-        <div className="flex items-center gap-2 mb-4">
-          <Mail className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-bold text-foreground">Đổi email</h2>
-        </div>
-        {emailMsg && <Banner type={emailMsg.type} text={emailMsg.text} />}
-        <form onSubmit={handleChangeEmail} className="space-y-3">
-          <div className="space-y-1.5">
-            <label className={labelClass}>Email mới</label>
-            <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className={inputClass} />
-          </div>
-          <button
-            type="submit"
-            disabled={emailLoading || newEmail.trim() === email}
-            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md transition-all disabled:opacity-60"
-          >
-            {emailLoading ? 'Đang lưu...' : 'Lưu email'}
-          </button>
-        </form>
-      </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="email" className="text-sm font-medium">Email</label>
+                <Input id="email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+              </div>
+              <Note tone="ok">{accMsg}</Note>
+              <Note tone="err">{accErr}</Note>
+              <div><Button onClick={saveEmail} disabled={savingAcc}>{savingAcc ? 'Đang lưu…' : 'Lưu thay đổi'}</Button></div>
+            </CardContent>
+          </Card>
 
-      {/* Đổi mật khẩu */}
-      <div className={cardClass}>
-        <div className="flex items-center gap-2 mb-4">
-          <Lock className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-bold text-foreground">Đổi mật khẩu</h2>
-        </div>
-        {pwMsg && <Banner type={pwMsg.type} text={pwMsg.text} />}
-        <form onSubmit={handleChangePassword} className="space-y-3">
-          <div className="space-y-1.5">
-            <label className={labelClass}>Mật khẩu hiện tại</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className={inputClass}
-              autoComplete="current-password"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className={labelClass}>Mật khẩu mới</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className={inputClass}
-              autoComplete="new-password"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={pwLoading || !currentPassword || !newPassword}
-            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md transition-all flex items-center gap-2 disabled:opacity-60"
-          >
-            {pwLoading && <RefreshCw className="w-4 h-4 animate-spin" />}
-            {pwLoading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
-          </button>
-        </form>
-      </div>
+          {/* Đổi mật khẩu */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Đổi mật khẩu</CardTitle>
+              <CardDescription>Để trống nếu đăng nhập bằng Google.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="curpw" className="text-sm font-medium">Mật khẩu hiện tại</label>
+                <Input id="curpw" type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="newpw" className="text-sm font-medium">Mật khẩu mới</label>
+                <Input id="newpw" type="password" minLength={8} value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+              </div>
+              <Note tone="ok">{pwMsg}</Note>
+              <Note tone="err">{pwErr}</Note>
+              <div><Button onClick={savePassword} disabled={savingPw || !curPw || !newPw}>{savingPw ? 'Đang đổi…' : 'Đổi mật khẩu'}</Button></div>
+            </CardContent>
+          </Card>
 
-      {/* Xóa tài khoản */}
-      <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Trash2 className="w-4 h-4 text-destructive" />
-          <h2 className="text-sm font-bold text-destructive">Xóa tài khoản</h2>
+          {/* Vùng nguy hiểm */}
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="text-destructive">Xoá tài khoản</CardTitle>
+              <CardDescription>Xoá vĩnh viễn tài khoản và dữ liệu liên quan.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10" onClick={removeAccount}>
+                Xoá tài khoản của tôi
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-        <p className="text-[11px] text-muted-foreground mb-4">
-          Tài khoản sẽ bị vô hiệu hóa và bạn sẽ không thể đăng nhập lại. Hành động này không thể hoàn tác.
-        </p>
-        {!confirmDelete ? (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="px-4 py-2.5 border border-destructive/40 text-destructive font-bold text-xs rounded-md hover:bg-destructive/10 transition-all"
-          >
-            Tôi muốn xóa tài khoản
-          </button>
-        ) : (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2.5 bg-destructive text-white font-bold text-xs rounded-md hover:bg-destructive/90 transition-all"
-            >
-              Xác nhận xóa vĩnh viễn
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="px-4 py-2.5 text-muted-foreground font-semibold text-xs hover:text-foreground"
-            >
-              Hủy
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      </Container>
+    </Section>
   );
 }

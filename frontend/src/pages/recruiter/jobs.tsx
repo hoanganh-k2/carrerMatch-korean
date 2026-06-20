@@ -1,493 +1,179 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus, Pencil, Trash2, Eye, Users, Briefcase } from 'lucide-react';
 import {
-  Briefcase,
-  Plus,
-  Trash2,
-  Pencil,
-  Loader2,
-  AlertCircle,
-  Eye,
-  Users,
-  Sparkles,
-  UploadCloud,
-  FileText,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+  fetchMyCompany, createJobPosting, updateJobPosting, deleteJobPosting, normalizeJob, type Job,
+} from '@/lib/api';
+import { useAuth } from '@/context/auth-context';
+import { DashboardShell, recruiterNav } from '@/components/layout/dashboard-shell';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SkillPicker } from '@/components/skill-picker';
-import { useAuth } from '@/context/auth-context';
-import {
-  fetchMyCompany,
-  fetchJobs,
-  createJobPosting,
-  updateJobPosting,
-  deleteJobPosting,
-  uploadFile,
-  getUploadedFileUrl,
-  Job,
-} from '@/lib/api';
+import { LoadingBlock } from '@/components/ui/spinner';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Pagination, paginate } from '@/components/ui/pagination';
+import { formatSalary, topikLabel, jobTypeLabel, cn } from '@/lib/utils';
 
-const inputClass =
-  'w-full px-3 py-2.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
+const PER_PAGE = 8;
 
-const TOPIK_OPTIONS = [
-  { value: 'NONE', label: 'Không yêu cầu' },
-  { value: 'TOPIK_II_LEVEL_3', label: 'TOPIK II - Cấp 3' },
-  { value: 'TOPIK_II_LEVEL_4', label: 'TOPIK II - Cấp 4' },
-  { value: 'TOPIK_II_LEVEL_5', label: 'TOPIK II - Cấp 5' },
-  { value: 'TOPIK_II_LEVEL_6', label: 'TOPIK II - Cấp 6' },
-];
+const TOPIKS = ['NONE', 'TOPIK_I_LEVEL_2', 'TOPIK_II_LEVEL_3', 'TOPIK_II_LEVEL_4', 'TOPIK_II_LEVEL_5', 'TOPIK_II_LEVEL_6'];
+const JOBTYPES = ['fulltime', 'parttime', 'remote', 'hybrid'];
 
 const emptyForm = {
-  title: '',
-  description: '',
-  jdFileUrl: '' as string,
-  requiredSkills: [] as string[],
-  salaryMin: '',
-  salaryMax: '',
-  jobType: 'fulltime',
-  experienceYearsMin: '0',
-  location: 'Hà Nội',
-  applicationDeadline: '',
-  minTopikRequired: 'NONE',
+  title: '', description: '', location: '', salaryMin: '' as number | '', salaryMax: '' as number | '',
+  jobType: 'fulltime', minTopikRequired: 'NONE', experienceYearsMin: 0, applicationDeadline: '', requiredSkills: [] as string[],
 };
 
-export default function RecruiterJobsPage() {
+export function RecruiterJobsPage() {
   const { token } = useAuth();
-  const [company, setCompany] = useState<any>(null);
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [hasCompany, setHasCompany] = useState(false);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Form đăng tin / sửa tin
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
-  const [saving, setSaving] = useState(false);
-  const [uploadingJd, setUploadingJd] = useState(false);
+  const [err, setErr] = useState('');
+  const [page, setPage] = useState(1);
 
-  const handleJdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!token || !file) return;
-    setUploadingJd(true);
-    try {
-      const { url } = await uploadFile(file, 'jd', token);
-      setForm((f) => ({ ...f, jdFileUrl: url }));
-    } catch (err: any) {
-      alert(err.message || 'Tải file JD thất bại (nhận PDF/DOC/DOCX, tối đa 5MB)');
-    } finally {
-      setUploadingJd(false);
-      e.target.value = '';
-    }
-  };
-
-  const load = async () => {
+  const load = () => {
     if (!token) return;
-    setLoading(true);
-    try {
-      const myCompany = await fetchMyCompany(token).catch(() => null);
-      setCompany(myCompany);
-      if (myCompany?.companyId) {
-        const allJobs = await fetchJobs();
-        setJobs(allJobs.filter((j: Job) => j.companyId === myCompany.companyId));
+    return fetchMyCompany(token).then((c) => {
+      if (c && (c.companyId || c.id)) {
+        setHasCompany(true);
+        setCompanyId(c.companyId ?? c.id);
+        setJobs((c.jobPostings ?? c.job_postings ?? []).map(normalizeJob));
       }
-    } catch (err: any) {
-      setError(err.message || 'Lỗi tải dữ liệu');
-    } finally {
-      setLoading(false);
-    }
+    }).catch(() => {});
   };
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  useEffect(() => { load()?.finally(() => setLoading(false)); /* eslint-disable-next-line */ }, [token]);
 
-  const openCreate = () => {
-    setEditingId(null);
-    setForm({ ...emptyForm });
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const openEdit = (job: any) => {
-    setEditingId(job.id);
+  const startNew = () => { setForm({ ...emptyForm }); setEditing('new'); setErr(''); };
+  const startEdit = (j: Job) => {
     setForm({
-      title: job.title ?? '',
-      description: job.description ?? '',
-      jdFileUrl: job.jdFileUrl ?? '',
-      requiredSkills: job.requiredSkills ?? [],
-      salaryMin: job.salaryMin != null ? String(job.salaryMin) : '',
-      salaryMax: job.salaryMax != null ? String(job.salaryMax) : '',
-      jobType: job.jobType ?? 'fulltime',
-      experienceYearsMin: job.experienceYearsMin != null ? String(job.experienceYearsMin) : '0',
-      location: job.location ?? 'Hà Nội',
-      applicationDeadline: job.applicationDeadline
-        ? new Date(job.applicationDeadline).toISOString().slice(0, 10)
-        : '',
-      minTopikRequired: job.minTopikRequired ?? 'NONE',
+      title: j.title, description: j.description, location: j.location,
+      salaryMin: j.salaryMin ?? '', salaryMax: j.salaryMax ?? '', jobType: j.jobType ?? 'fulltime',
+      minTopikRequired: j.minTopikRequired ?? 'NONE', experienceYearsMin: j.experienceYearsMin ?? 0,
+      applicationDeadline: j.applicationDeadline?.slice(0, 10) ?? '', requiredSkills: j.requiredSkills ?? [],
     });
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setEditing(j.id); setErr('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !company?.companyId) return;
-    if (form.requiredSkills.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 kỹ năng bắt buộc');
-      return;
-    }
-    setSaving(true);
-    setError(null);
+  const submit = async () => {
+    if (!token) return;
+    const payload: any = {
+      ...form,
+      companyId,
+      salaryMin: form.salaryMin === '' ? undefined : Number(form.salaryMin),
+      salaryMax: form.salaryMax === '' ? undefined : Number(form.salaryMax),
+      experienceYearsMin: Number(form.experienceYearsMin) || 0,
+      applicationDeadline: form.applicationDeadline || undefined,
+    };
     try {
-      if (editingId) {
-        await updateJobPosting(
-          editingId,
-          {
-            title: form.title,
-            description: form.description,
-            jdFileUrl: form.jdFileUrl || null,
-            requiredSkills: form.requiredSkills,
-            salaryMin: form.salaryMin ? parseInt(form.salaryMin) : null,
-            salaryMax: form.salaryMax ? parseInt(form.salaryMax) : null,
-            jobType: form.jobType,
-            experienceYearsMin: parseFloat(form.experienceYearsMin) || 0,
-            location: form.location,
-            applicationDeadline: new Date(form.applicationDeadline).toISOString(),
-            minTopikRequired: form.minTopikRequired,
-          },
-          token,
-        );
-      } else {
-        // Backend tự sinh jd_embedding từ title + description khi tạo tin
-        await createJobPosting(
-          {
-            companyId: company.companyId,
-            title: form.title,
-            description: form.description,
-            jdFileUrl: form.jdFileUrl || null,
-            requiredSkills: form.requiredSkills,
-            preferredSkills: [],
-            salaryMin: form.salaryMin ? parseInt(form.salaryMin) : null,
-            salaryMax: form.salaryMax ? parseInt(form.salaryMax) : null,
-            jobType: form.jobType,
-            experienceYearsMin: parseFloat(form.experienceYearsMin) || 0,
-            location: form.location,
-            applicationDeadline: form.applicationDeadline,
-            minTopikRequired: form.minTopikRequired,
-          },
-          token,
-        );
-      }
-      setShowForm(false);
+      if (editing === 'new') await createJobPosting(payload, token);
+      else if (editing) await updateJobPosting(editing, payload, token);
+      setEditing(null);
       await load();
-    } catch (err: any) {
-      setError(err.message || 'Lưu tin thất bại');
-    } finally {
-      setSaving(false);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Lưu tin thất bại');
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!token || !window.confirm('Xóa tin tuyển dụng này?')) return;
-    try {
-      await deleteJobPosting(id, token);
-      await load();
-    } catch (err: any) {
-      alert(err.message || 'Xóa thất bại — tin có thể đã có đơn ứng tuyển.');
-    }
+  const remove = async (id: string) => {
+    if (!token || !confirm('Xóa tin tuyển dụng này?')) return;
+    await deleteJobPosting(id, token);
+    load();
   };
-
-  if (loading) {
-    return (
-      <main className="max-w-5xl mx-auto px-6 py-24 text-center">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
-      </main>
-    );
-  }
-
-  if (!company?.companyId) {
-    return (
-      <main className="max-w-5xl mx-auto px-6 py-10 w-full">
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-lg">
-          <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-extrabold text-lg text-foreground mb-2">Bạn chưa có hồ sơ công ty</h3>
-          <p className="text-muted-foreground text-xs mb-5">
-            Tạo hồ sơ công ty trước khi đăng tin tuyển dụng.
-          </p>
-          <Link
-            to="/recruiter/company"
-            className="inline-block text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg px-5 py-2.5"
-          >
-            Tạo hồ sơ công ty
-          </Link>
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10 w-full space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="eyebrow">Tin tuyển dụng</p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Briefcase className="w-6 h-6 text-primary" />
-            Tin tuyển dụng của {company.companyName}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {jobs.length} tin — khi đăng tin mới, AI tự sinh vector ngữ nghĩa cho semantic search và
-            matching.
-          </p>
-        </div>
-        <Button
-          onClick={openCreate}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Đăng tin mới
-        </Button>
-      </div>
-
-      {error && (
-        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Form đăng / sửa tin */}
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-card border border-border rounded-lg p-6 space-y-5 animate-in fade-in slide-in-from-top-2"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-foreground flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-primary" />
-              {editingId ? 'Chỉnh sửa tin tuyển dụng' : 'Đăng tin tuyển dụng mới'}
-            </h2>
-            <button type="button" onClick={() => setShowForm(false)} className="text-xs text-muted-foreground hover:text-foreground">
-              Đóng
-            </button>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Tiêu đề *
-            </label>
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className={inputClass}
-              required
-              placeholder="VD: [Hà Nội] Kỹ sư cầu nối BrSE Tiếng Hàn (TOPIK 5+)"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Mô tả công việc (JD) *
-            </label>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className={`${inputClass} resize-none`}
-              rows={5}
-              required
-              placeholder="Mô tả chi tiết: trách nhiệm, yêu cầu, quyền lợi... (AI sẽ phân tích JD này để matching ứng viên)"
-            />
-          </div>
-
-          {/* File JD đính kèm (tùy chọn) */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              File JD đính kèm (tùy chọn — PDF/DOC/DOCX)
-            </label>
-            <div className="flex items-center gap-3">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  onChange={handleJdUpload}
-                  className="hidden"
-                />
-                <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all">
-                  {uploadingJd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                  {form.jdFileUrl ? 'Đổi file JD' : 'Tải lên file JD'}
-                </span>
-              </label>
-              {form.jdFileUrl && (
-                <a
-                  href={getUploadedFileUrl(form.jdFileUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
-                >
-                  <FileText className="w-3.5 h-3.5" /> Xem file đã tải lên
-                </a>
-              )}
+    <DashboardShell
+      nav={recruiterNav}
+      kr="채용 관리"
+      eyebrow="Nhà tuyển dụng"
+      title="Tin tuyển dụng"
+      description="Đăng và quản lý tin tuyển dụng của công ty."
+      actions={hasCompany && !editing ? <Button onClick={startNew}><Plus className="h-4 w-4" /> Đăng tin mới</Button> : undefined}
+    >
+      {loading ? (
+        <LoadingBlock />
+      ) : !hasCompany ? (
+        <EmptyState
+          icon={<Briefcase />}
+          title="Bạn chưa có hồ sơ công ty"
+          description="Tạo hồ sơ công ty trước khi đăng tin tuyển dụng."
+          action={<Link to="/recruiter/company" className={cn(buttonVariants())}>Tạo hồ sơ công ty</Link>}
+        />
+      ) : editing ? (
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-5">
+            <h3 className="font-display text-lg font-bold">{editing === 'new' ? 'Đăng tin mới' : 'Chỉnh sửa tin'}</h3>
+            {err && <p className="text-sm text-destructive">{err}</p>}
+            <Field label="Tiêu đề"><Input value={form.title} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} placeholder="VD: BrSE Java (Hà Nội)" /></Field>
+            <Field label="Mô tả công việc"><Textarea value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} className="min-h-40" /></Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Địa điểm"><Input value={form.location} onChange={(e) => setForm((s) => ({ ...s, location: e.target.value }))} /></Field>
+              <Field label="Loại hình">
+                <Select value={form.jobType} onChange={(e) => setForm((s) => ({ ...s, jobType: e.target.value }))}>
+                  {JOBTYPES.map((t) => <option key={t} value={t}>{jobTypeLabel(t)}</option>)}
+                </Select>
+              </Field>
+              <Field label="Lương tối thiểu (VND)"><Input type="number" value={form.salaryMin} onChange={(e) => setForm((s) => ({ ...s, salaryMin: e.target.value === '' ? '' : Number(e.target.value) }))} /></Field>
+              <Field label="Lương tối đa (VND)"><Input type="number" value={form.salaryMax} onChange={(e) => setForm((s) => ({ ...s, salaryMax: e.target.value === '' ? '' : Number(e.target.value) }))} /></Field>
+              <Field label="Yêu cầu TOPIK">
+                <Select value={form.minTopikRequired} onChange={(e) => setForm((s) => ({ ...s, minTopikRequired: e.target.value }))}>
+                  {TOPIKS.map((t) => <option key={t} value={t}>{topikLabel(t)}</option>)}
+                </Select>
+              </Field>
+              <Field label="Kinh nghiệm tối thiểu (năm)"><Input type="number" min={0} value={form.experienceYearsMin} onChange={(e) => setForm((s) => ({ ...s, experienceYearsMin: Number(e.target.value) || 0 }))} /></Field>
+              <Field label="Hạn nộp"><Input type="date" value={form.applicationDeadline} onChange={(e) => setForm((s) => ({ ...s, applicationDeadline: e.target.value }))} /></Field>
             </div>
-          </div>
-
-          <SkillPicker
-            selected={form.requiredSkills}
-            onChange={(skills) => setForm({ ...form, requiredSkills: skills })}
-            label="Kỹ năng bắt buộc"
-          />
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Lương từ (VND)
-              </label>
-              <input type="number" min="0" step="1000000" value={form.salaryMin}
-                onChange={(e) => setForm({ ...form, salaryMin: e.target.value })} className={inputClass} />
+            <Field label="Kỹ năng yêu cầu"><SkillPicker value={form.requiredSkills} onChange={(v) => setForm((s) => ({ ...s, requiredSkills: v }))} columns /></Field>
+            <div className="flex gap-2">
+              <Button onClick={submit} disabled={!form.title.trim()}>{editing === 'new' ? 'Đăng tin' : 'Lưu thay đổi'}</Button>
+              <Button variant="ghost" onClick={() => setEditing(null)}>Hủy</Button>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Lương đến (VND)
-              </label>
-              <input type="number" min="0" step="1000000" value={form.salaryMax}
-                onChange={(e) => setForm({ ...form, salaryMax: e.target.value })} className={inputClass} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Hình thức
-              </label>
-              <select value={form.jobType} onChange={(e) => setForm({ ...form, jobType: e.target.value })} className={inputClass}>
-                <option value="fulltime">Full-time</option>
-                <option value="parttime">Part-time</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="remote">Remote</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Kinh nghiệm tối thiểu (năm)
-              </label>
-              <input type="number" min="0" step="0.5" value={form.experienceYearsMin}
-                onChange={(e) => setForm({ ...form, experienceYearsMin: e.target.value })} className={inputClass} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Địa điểm *
-              </label>
-              <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} required />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Hạn nộp hồ sơ *
-              </label>
-              <input type="date" value={form.applicationDeadline}
-                onChange={(e) => setForm({ ...form, applicationDeadline: e.target.value })} className={inputClass} required />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Yêu cầu TOPIK tối thiểu
-              </label>
-              <select value={form.minTopikRequired}
-                onChange={(e) => setForm({ ...form, minTopikRequired: e.target.value })} className={inputClass}>
-                {TOPIK_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={saving}
-            className="w-full py-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-md shadow-md shadow-primary/20 flex items-center justify-center gap-2"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            <span>
-              {saving
-                ? 'Đang lưu và sinh vector AI...'
-                : editingId
-                  ? 'Cập nhật tin'
-                  : 'Đăng tin và kích hoạt AI matching'}
-            </span>
-          </Button>
-        </form>
-      )}
-
-      {/* Danh sách tin */}
-      {jobs.length === 0 ? (
-        <div className="text-center py-20 bg-card border border-dashed border-border rounded-lg">
-          <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-extrabold text-lg text-foreground mb-2">Chưa có tin tuyển dụng nào</h3>
-          <p className="text-muted-foreground text-xs">Bấm "Đăng tin mới" để bắt đầu tìm ứng viên. 화이팅!</p>
-        </div>
+          </CardContent>
+        </Card>
+      ) : jobs.length === 0 ? (
+        <EmptyState icon={<Briefcase />} title="Chưa có tin tuyển dụng" description="Đăng tin đầu tiên để tiếp cận ứng viên." action={<Button onClick={startNew}><Plus className="h-4 w-4" /> Đăng tin mới</Button>} />
       ) : (
-        <div className="space-y-4">
-          {jobs.map((job) => (
-            <div
-              key={job.id}
-              className="bg-card border border-border rounded-lg p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/40 transition-colors"
-            >
-              <div className="space-y-1.5 flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={`rounded-md text-[10px] font-bold ${
-                      job.status === 'active'
-                        ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/25'
-                        : 'bg-secondary text-muted-foreground border-border'
-                    }`}
-                  >
-                    {(job.status ?? 'active').toUpperCase()}
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">
-                    Hạn nộp:{' '}
-                    {job.applicationDeadline
-                      ? new Date(job.applicationDeadline).toLocaleDateString('vi-VN')
-                      : '—'}
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-sm text-foreground truncate">{job.title}</h3>
-                <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5" /> {job.viewsCount ?? 0} lượt xem
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3.5 h-3.5" /> {job.applyCount ?? 0} đơn
-                  </span>
-                  <span>{job.location}</span>
+        <div className="flex flex-col gap-3">
+          {paginate(jobs, Math.min(page, Math.max(1, Math.ceil(jobs.length / PER_PAGE))), PER_PAGE).map((j) => (
+            <div key={j.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{j.title}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <Badge variant="cobalt">{topikLabel(j.minTopikRequired)}</Badge>
+                  <span className="signage-num">{formatSalary(j.salaryMin, j.salaryMax)}</span>
+                  <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {j.viewsCount ?? 0}</span>
+                  <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {j.applyCount ?? 0}</span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <Link
-                  to={`/recruiter/jobs/${job.id}`}
-                  className="text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg px-3.5 py-2 flex items-center gap-1.5"
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  Đơn & Ứng viên AI
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Link to={`/recruiter/jobs/${j.id}`} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+                  <Users className="h-4 w-4" /> Ứng viên
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => openEdit(job)}
-                  className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground border border-border"
-                >
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(job.id)}
-                  className="w-8 h-8 rounded-lg text-muted-foreground hover:text-destructive border border-border"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <Button variant="ghost" size="sm" onClick={() => startEdit(j)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => remove(j.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ))}
+          <Pagination page={Math.min(page, Math.max(1, Math.ceil(jobs.length / PER_PAGE)))} totalPages={Math.max(1, Math.ceil(jobs.length / PER_PAGE))} onChange={setPage} />
         </div>
       )}
-    </main>
+    </DashboardShell>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium">{label}</label>
+      {children}
+    </div>
   );
 }

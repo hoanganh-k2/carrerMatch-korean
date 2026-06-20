@@ -1,0 +1,9 @@
+Hình ảnh trên landing page — nguồn Unsplash (https://unsplash.com)
+Giấy phép: Unsplash License (miễn phí, dùng thương mại OK, không bắt buộc xin phép).
+Ghi credit là phép lịch sự — cảm ơn các nhiếp ảnh gia trên Unsplash.
+
+Ảnh được tải về và tự host trong thư mục này, đã xử lý duotone trong UI.
+
+- hero-seoul.jpg   — Seoul / đô thị Hàn Quốc   (Unsplash photo-1538485399081-7191377e8241)
+- journey.jpg      — Cánh máy bay trên mây      (Unsplash photo-1436491865332-7a61a109cc05)
+- cta-connect.jpg  — Đội nhóm kết nối           (Unsplash photo-1522071820081-009f0129c71c)

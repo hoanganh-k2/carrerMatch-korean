@@ -1,59 +1,56 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { verifyEmail } from '@/lib/api';
+import { Container } from '@/components/ui/container';
+import { buttonVariants } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 
-export default function VerifyEmailPage() {
+export function VerifyEmailPage() {
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setMessage('Liên kết xác minh không hợp lệ.');
+      setMessage('Thiếu mã xác minh trong liên kết.');
       return;
     }
     verifyEmail(token)
-      .then((res) => {
-        setStatus('success');
-        setMessage(res.message || 'Xác minh email thành công!');
-      })
-      .catch((err) => {
+      .then(() => setStatus('ok'))
+      .catch((e) => {
         setStatus('error');
-        setMessage(err.message || 'Xác minh email thất bại.');
+        setMessage(e instanceof Error ? e.message : 'Xác minh email thất bại');
       });
   }, [token]);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-card border border-border rounded-lg p-8 text-center shadow-sm">
-        {status === 'loading' && (
-          <>
-            <RefreshCw className="w-8 h-8 text-primary mx-auto mb-3 animate-spin" />
-            <p className="text-sm text-foreground">Đang xác minh email...</p>
-          </>
-        )}
-        {status === 'success' && (
-          <>
-            <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-foreground">{message}</p>
-            <Link to="/login" className="inline-block mt-4 text-primary hover:underline text-xs font-semibold">
-              Đăng nhập ngay →
-            </Link>
-          </>
-        )}
-        {status === 'error' && (
-          <>
-            <AlertCircle className="w-10 h-10 text-destructive mx-auto mb-3" />
-            <p className="text-sm font-semibold text-foreground">{message}</p>
-            <Link to="/" className="inline-block mt-4 text-primary hover:underline text-xs font-semibold">
-              Về trang chủ →
-            </Link>
-          </>
-        )}
-      </div>
-    </div>
+    <Container className="flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+      {status === 'loading' && (
+        <>
+          <Spinner className="h-8 w-8 text-primary" />
+          <p className="mt-4 text-muted-foreground">Đang xác minh email…</p>
+        </>
+      )}
+      {status === 'ok' && (
+        <>
+          <CheckCircle2 className="h-12 w-12 text-primary" />
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">Xác minh thành công!</h1>
+          <p className="mt-2 max-w-md text-muted-foreground">Email của bạn đã được xác minh. Giờ bạn có thể đăng nhập và bắt đầu tìm việc.</p>
+          <Link to="/login" className={cn(buttonVariants(), 'mt-6')}>Đăng nhập ngay</Link>
+        </>
+      )}
+      {status === 'error' && (
+        <>
+          <XCircle className="h-12 w-12 text-destructive" />
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">Không xác minh được</h1>
+          <p className="mt-2 max-w-md text-muted-foreground">{message}</p>
+          <Link to="/login" className={cn(buttonVariants({ variant: 'outline' }), 'mt-6')}>Về trang đăng nhập</Link>
+        </>
+      )}
+    </Container>
   );
 }

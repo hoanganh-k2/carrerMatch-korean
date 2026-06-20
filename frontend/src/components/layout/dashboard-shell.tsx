@@ -1,123 +1,106 @@
-import * as React from 'react';
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Sparkles,
-  FileText,
-  Bookmark,
-  User,
-  Briefcase,
-  Building2,
-  Users,
-  ClipboardCheck,
-  Star,
-  type LucideIcon,
+  LayoutDashboard, Sparkles, Bookmark, User, FileText,
+  Briefcase, Building2, Users, Star, type LucideIcon,
 } from 'lucide-react';
-import { useAuth } from '@/context/auth-context';
-import { Container } from '@/components/ui/container';
 import { cn } from '@/lib/utils';
 
-type NavItem = { to: string; label: string; icon: LucideIcon; end?: boolean };
+export interface DashNavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
+}
 
-const MENU_BY_ROLE: Record<string, NavItem[]> = {
-  candidate: [
-    { to: '/candidate', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/candidate/recommendations', label: 'Dành cho bạn', icon: Sparkles },
-    { to: '/candidate/resumes', label: 'CV của tôi', icon: FileText },
-    { to: '/candidate/saved', label: 'Việc đã lưu', icon: Bookmark },
-    { to: '/candidate/profile', label: 'Hồ sơ', icon: User },
-  ],
-  recruiter: [
-    { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/recruiter/jobs', label: 'Tin tuyển dụng', icon: Briefcase },
-    { to: '/recruiter/company', label: 'Công ty', icon: Building2 },
-  ],
-  admin: [
-    { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-    { to: '/admin/users', label: 'Người dùng', icon: Users },
-    { to: '/admin/jobs', label: 'Kiểm duyệt tin', icon: ClipboardCheck },
-    { to: '/admin/reviews', label: 'Đánh giá', icon: Star },
-  ],
-};
+export const candidateNav: DashNavItem[] = [
+  { to: '/candidate', label: 'Tổng quan', icon: LayoutDashboard, end: true },
+  { to: '/candidate/recommendations', label: 'Gợi ý việc', icon: Sparkles },
+  { to: '/candidate/saved', label: 'Tin đã lưu', icon: Bookmark },
+  { to: '/candidate/profile', label: 'Hồ sơ', icon: User },
+  { to: '/candidate/resumes', label: 'CV của tôi', icon: FileText },
+];
 
-const ROLE_LABEL: Record<string, string> = {
-  candidate: 'Ứng viên',
-  recruiter: 'Nhà tuyển dụng',
-  admin: 'Quản trị viên',
-};
+export const recruiterNav: DashNavItem[] = [
+  { to: '/recruiter', label: 'Tổng quan', icon: LayoutDashboard, end: true },
+  { to: '/recruiter/jobs', label: 'Tin tuyển dụng', icon: Briefcase },
+  { to: '/recruiter/company', label: 'Hồ sơ công ty', icon: Building2 },
+];
+
+export const adminNav: DashNavItem[] = [
+  { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
+  { to: '/admin/users', label: 'Người dùng', icon: Users },
+  { to: '/admin/jobs', label: 'Tin tuyển dụng', icon: Briefcase },
+  { to: '/admin/reviews', label: 'Đánh giá', icon: Star },
+];
+
+interface DashboardShellProps {
+  nav: DashNavItem[];
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  /** Giữ để tương thích — không còn hiển thị (đã bỏ header lớn) */
+  kr?: string;
+  eyebrow?: string;
+}
 
 /**
- * Khung dashboard chung cho candidate/recruiter/admin: sidebar điều hướng cố định
- * (theo role) + vùng nội dung. Không đổi route — chỉ bọc layout quanh trang.
- * Mobile: sidebar trở thành dải tab cuộn ngang phía trên nội dung.
+ * Khung dashboard kiểu chuẩn: sidebar sát mép trái (full-height, desktop) →
+ * thanh tab cuộn ngang (mobile) + vùng nội dung. Không còn header lớn.
  */
-export function DashboardShell({
-  title,
-  children,
-}: {
-  title?: string;
-  children: React.ReactNode;
-}) {
-  const { role } = useAuth();
-  const items = (role && MENU_BY_ROLE[role]) || [];
-
+export function DashboardShell({ nav, title, description, actions, children }: DashboardShellProps) {
   return (
-    <Container size="wide" className="py-6 md:py-8">
-      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
-        {/* Sidebar (desktop) */}
-        <aside className="hidden w-60 shrink-0 lg:block">
-          <div className="sticky top-24 space-y-1">
-            <div className="px-3 pb-3">
-              <p className="eyebrow">{role ? ROLE_LABEL[role] : ''}</p>
-              {title ? (
-                <h2 className="mt-1 text-lg font-bold text-foreground">{title}</h2>
-              ) : null}
-            </div>
-            {items.map((item) => (
-              <SidebarLink key={item.to} {...item} />
-            ))}
-          </div>
-        </aside>
-
-        {/* Dải tab cuộn ngang (mobile) */}
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden">
-          {items.map((item) => (
-            <SidebarLink key={item.to} {...item} compact />
+    <div className="flex">
+      {/* Sidebar sát trái — desktop */}
+      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-r border-border bg-card px-3 py-5 lg:block">
+        <nav className="flex flex-col gap-1">
+          {nav.map((item) => (
+            <NavItem key={item.to} item={item} />
           ))}
-        </div>
+        </nav>
+      </aside>
 
-        {/* Nội dung */}
-        <main className="min-w-0 flex-1">{children}</main>
+      <div className="min-w-0 flex-1">
+        {/* Nav cuộn ngang — mobile */}
+        <nav className="flex gap-1 overflow-x-auto border-b border-border bg-card px-3 py-2 lg:hidden">
+          {nav.map((item) => (
+            <NavItem key={item.to} item={item} compact />
+          ))}
+        </nav>
+
+        <div className="px-5 py-7 sm:px-8">
+          {(title || actions) && (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                {title && <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>}
+                {description && <div className="mt-0.5 text-sm text-muted-foreground">{description}</div>}
+              </div>
+              {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+            </div>
+          )}
+          {children}
+        </div>
       </div>
-    </Container>
+    </div>
   );
 }
 
-function SidebarLink({
-  to,
-  label,
-  icon: Icon,
-  end,
-  compact,
-}: NavItem & { compact?: boolean }) {
+function NavItem({ item, compact }: { item: DashNavItem; compact?: boolean }) {
   return (
     <NavLink
-      to={to}
-      end={end}
+      to={item.to}
+      end={item.end}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-2.5 rounded-lg text-sm font-semibold transition-colors',
-          compact
-            ? 'shrink-0 whitespace-nowrap px-3 py-2'
-            : 'px-3 py-2.5',
-          isActive
-            ? 'bg-accent text-primary'
-            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+          'flex shrink-0 items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+          compact ? 'whitespace-nowrap' : '',
+          isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )
       }
     >
-      <Icon className="size-4 shrink-0" />
-      {label}
+      <item.icon className="h-4 w-4" />
+      <span className="whitespace-nowrap">{item.label}</span>
     </NavLink>
   );
 }

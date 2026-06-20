@@ -21,34 +21,42 @@ interface AuthState {
   restoring: boolean;
 }
 
+interface SignInData {
+  accessToken: string;
+  user: { id: string; email: string; role: string };
+  fullName?: string;
+}
+
 interface AuthContextValue extends AuthState {
-  /** Gọi sau khi login/register thành công từ AuthModal */
-  signIn: (data: {
-    accessToken: string;
-    user: { id: string; email: string; role: string };
-    fullName?: string;
-  }) => Promise<UserRole>;
+  signIn: (data: SignInData) => Promise<UserRole>;
   signOut: () => void;
-  /** Cập nhật avatar ngay trên UI sau khi upload thành công */
   updateAvatar: (url: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Key token trong localStorage — KHÔNG đổi (hợp đồng với phần còn lại) */
 const TOKEN_KEY = 'cm_token';
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    token: null,
-    role: null,
-    email: null,
-    userId: null,
-    displayName: null,
-    avatarUrl: null,
-    restoring: true,
-  });
+const EMPTY: AuthState = {
+  token: null,
+  role: null,
+  email: null,
+  userId: null,
+  displayName: null,
+  avatarUrl: null,
+  restoring: false,
+};
 
-  // Khôi phục phiên từ localStorage khi mở app
+/** Lấy tên hiển thị ưu tiên: ứng viên → công ty → email */
+function nameFromProfile(profile: any, fallback: string): string {
+  return profile?.jobUser?.fullName || profile?.company?.companyName || fallback;
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<AuthState>({ ...EMPTY, restoring: true });
+
+  // Khôi phục phiên khi mở app
   useEffect(() => {
     const savedToken = localStorage.getItem(TOKEN_KEY);
     if (!savedToken) {
@@ -62,10 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: profile.role as UserRole,
           email: profile.email,
           userId: profile.id ?? profile.userId ?? null,
-          displayName:
-            profile.jobUser?.fullName ||
-            profile.company?.companyName ||
-            profile.email,
+          displayName: nameFromProfile(profile, profile.email),
           avatarUrl: profile.avatarUrl ?? null,
           restoring: false,
         });
@@ -83,13 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let avatarUrl: string | null = null;
     try {
       const profile = await fetchProfile(data.accessToken);
-      displayName =
-        profile.jobUser?.fullName ||
-        profile.company?.companyName ||
-        displayName;
+      displayName = nameFromProfile(profile, displayName);
       avatarUrl = profile.avatarUrl ?? null;
     } catch {
-      // Không chặn đăng nhập nếu fetch profile lỗi
+      /* không chặn đăng nhập nếu fetch profile lỗi */
     }
     setState({
       token: data.accessToken,
@@ -109,15 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
-    setState({
-      token: null,
-      role: null,
-      email: null,
-      userId: null,
-      displayName: null,
-      avatarUrl: null,
-      restoring: false,
-    });
+    setState({ ...EMPTY });
   }, []);
 
   const value = useMemo(
@@ -130,22 +124,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth phải được dùng bên trong <AuthProvider>');
-  }
+  if (!ctx) throw new Error('useAuth phải được dùng bên trong <AuthProvider>');
   return ctx;
 }
 
-/** Đường dẫn trang chủ theo role sau khi đăng nhập */
+/** Trang chủ theo role sau khi đăng nhập */
 export function homePathForRole(role: UserRole | null): string {
   switch (role) {
-    case 'candidate':
-      return '/candidate';
-    case 'recruiter':
-      return '/recruiter';
-    case 'admin':
-      return '/admin';
-    default:
-      return '/';
+    case 'candidate': return '/candidate';
+    case 'recruiter': return '/recruiter';
+    case 'admin': return '/admin';
+    default: return '/';
   }
 }

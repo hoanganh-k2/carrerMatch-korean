@@ -1,41 +1,35 @@
 import type { Variants, Transition } from 'motion/react';
 
-/** Spring êm — dùng cho hover, layout, tiến trình */
+/** Spring êm — hover, layout, tiến trình */
 export const springSoft: Transition = { type: 'spring', stiffness: 260, damping: 30 };
-/** Spring nảy hơn — dùng cho FAB pop, nhấn */
+/** Spring nảy hơn — FAB pop, nhấn */
 export const springBouncy: Transition = { type: 'spring', stiffness: 420, damping: 22 };
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
 /** Chuyển trang toàn cục */
 export const pageVariants: Variants = {
-  initial: { opacity: 0, y: 12 },
+  initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: easeOut } },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.18, ease: 'easeIn' } },
+  exit: { opacity: 0, y: -6, transition: { duration: 0.18, ease: 'easeIn' } },
 };
 
-/** Hiện lên + trượt lên — nhịp editorial điềm, biên độ nhỏ */
+/** Hiện lên + trượt — biên độ nhỏ, điềm */
 export const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: easeOut } },
 };
 
-/** Hero page-load sequence — container điều phối các phần tử lộ dần */
+/** Khối "lắp" vào lưới như ghép jamo — dùng cho hero composition */
+export const blockSnap: Variants = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.55, ease: easeOut } },
+};
+
+/** Container điều phối các khối hero lộ dần */
 export const heroSequence: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
-};
-
-/** Phần tử trong hero — lộ dần kèm trượt nhẹ */
-export const heroItem: Variants = {
-  hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: easeOut } },
-};
-
-/** Phóng nhẹ */
-export const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.96 },
-  show: { opacity: 1, scale: 1, transition: springSoft },
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.06 } },
 };
 
 /** Container stagger cho danh sách */

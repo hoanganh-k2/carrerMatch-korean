@@ -1,103 +1,89 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fetchSkillTaxonomy } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
-/**
- * Multi-select kỹ năng lấy từ bảng skill_taxonomy của backend.
- * Dùng chung cho: profile ứng viên, form đăng tin recruiter, form subscription.
- */
-export function SkillPicker({
-  selected,
-  onChange,
-  label = 'Kỹ năng',
-}: {
-  selected: string[];
+interface SkillPickerProps {
+  value: string[];
   onChange: (skills: string[]) => void;
-  label?: string;
-}) {
-  const [skills, setSkills] = useState<Array<{ skillName: string; category: string }>>([]);
-  const [loading, setLoading] = useState(true);
+  max?: number;
+  /** Xếp các nhóm kỹ năng thành nhiều cột để giảm chiều cao (ít cuộn hơn) */
+  columns?: boolean;
+}
+
+const FALLBACK = [
+  'Java', 'Spring', 'React', 'Node.js', 'Python', 'PHP', 'Vue.js', 'TypeScript',
+  'AWS', 'Docker', 'Kotlin', 'Swift', 'Flutter', '.NET', 'SQL', 'Communication',
+];
+
+/** Chọn nhiều kỹ năng (chip toggle), gom nhóm theo category từ /skill-taxonomy. */
+export function SkillPicker({ value, onChange, max, columns }: SkillPickerProps) {
+  const [groups, setGroups] = useState<Record<string, string[]>>({});
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetchSkillTaxonomy()
-      .then((data) =>
-        setSkills(
-          data.map((s: any) => ({
-            skillName: s.skillName ?? s.skill_name,
-            category: s.category,
-          })),
-        ),
-      )
-      .catch((err) => console.error('Lỗi tải skill taxonomy:', err))
-      .finally(() => setLoading(false));
+      .then((items) => {
+        const g: Record<string, string[]> = {};
+        for (const it of items) {
+          const cat = it.category || 'Khác';
+          (g[cat] ??= []).push(it.skillName);
+        }
+        setGroups(g);
+      })
+      .catch(() => setGroups({ 'Phổ biến': FALLBACK }))
+      .finally(() => setLoaded(true));
   }, []);
 
   const toggle = (skill: string) => {
-    onChange(
-      selected.includes(skill) ? selected.filter((s) => s !== skill) : [...selected, skill],
-    );
+    if (value.includes(skill)) {
+      onChange(value.filter((s) => s !== skill));
+    } else {
+      if (max && value.length >= max) return;
+      onChange([...value, skill]);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-wrap gap-2">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="h-7 w-20 rounded-lg bg-secondary animate-pulse" />
-        ))}
-      </div>
-    );
+  const entries = useMemo(() => Object.entries(groups), [groups]);
+
+  if (!loaded) {
+    return <div className="h-24 animate-pulse rounded-md bg-secondary" aria-hidden />;
   }
 
-  // Nhóm theo category để dễ chọn
-  const byCategory = skills.reduce<Record<string, string[]>>((acc, s) => {
-    (acc[s.category] = acc[s.category] || []).push(s.skillName);
-    return acc;
-  }, {});
-
-  const CATEGORY_LABELS: Record<string, string> = {
-    programming: 'Ngôn ngữ lập trình',
-    frontend: 'Frontend',
-    backend: 'Backend',
-    database: 'Database',
-    devops: 'DevOps',
-    cloud: 'Cloud',
-    mobile: 'Mobile',
-    testing: 'Kiểm thử',
-    methodology: 'Quy trình',
-    language: 'Tiếng Hàn',
-    'korean-role': 'Vai trò Hàn - Việt',
-  };
-
   return (
-    <div className="space-y-3">
-      <span className="block text-xs font-semibold text-muted-foreground">
-        {label} <span className="text-primary font-bold">({selected.length} đã chọn)</span>
-      </span>
-      {Object.entries(byCategory).map(([category, names]) => (
-        <div key={category} className="space-y-1.5">
-          <span className="block text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider">
-            {CATEGORY_LABELS[category] || category}
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {names.map((skill) => {
-              const isSel = selected.includes(skill);
-              return (
-                <button
-                  key={skill}
-                  type="button"
-                  onClick={() => toggle(skill)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                    isSel
-                      ? 'bg-primary border-primary text-primary-foreground shadow-sm'
-                      : 'bg-background border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
-                  }`}
-                >
-                  {skill}
-                </button>
-              );
-            })}
+    <div className="flex flex-col gap-4">
+      <div className={cn(columns ? 'grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2' : 'flex flex-col gap-4')}>
+        {entries.map(([cat, skills]) => (
+          <div key={cat}>
+            <p className="eyebrow mb-2">{cat}</p>
+            <div className="flex flex-wrap gap-2">
+              {skills.map((skill) => {
+                const active = value.includes(skill);
+                return (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => toggle(skill)}
+                    aria-pressed={active}
+                    className={cn(
+                      'rounded-sm border px-3 py-1.5 text-sm font-medium transition-colors',
+                      active
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-card text-foreground hover:border-foreground/30',
+                    )}
+                  >
+                    {skill}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      {max && (
+        <p className="text-xs text-muted-foreground">
+          Đã chọn {value.length}/{max} kỹ năng
+        </p>
+      )}
     </div>
   );
 }

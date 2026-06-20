@@ -1,43 +1,32 @@
-import * as React from 'react';
-import { Building2 } from 'lucide-react';
 import { getUploadedFileUrl } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
-/**
- * Logo công ty: hiển thị ảnh thật (qua getUploadedFileUrl) hoặc fallback Building2.
- * Dùng chung ở job row, featured, các trang chi tiết.
- */
-export function CompanyLogo({
-  logoUrl,
-  name,
-  className,
-  iconClassName,
-}: {
-  logoUrl?: string | null;
+interface CompanyLogoProps {
   name?: string;
+  logoUrl?: string | null;
+  size?: number;
   className?: string;
-  iconClassName?: string;
-}) {
-  const [errored, setErrored] = React.useState(false);
-  const showImg = logoUrl && !errored;
+}
+
+/** Logo công ty, fallback về chữ cái đầu trên nền cobalt nhạt. */
+export function CompanyLogo({ name = '', logoUrl, size = 48, className }: CompanyLogoProps) {
+  const src = getUploadedFileUrl(logoUrl);
+  const initial = name.trim().charAt(0).toUpperCase() || '·';
 
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card',
-        className
+        'flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-accent',
+        className,
       )}
+      style={{ width: size, height: size }}
     >
-      {showImg ? (
-        <img
-          src={getUploadedFileUrl(logoUrl)}
-          alt={name ? `Logo ${name}` : 'Logo công ty'}
-          loading="lazy"
-          onError={() => setErrored(true)}
-          className="h-full w-full object-contain p-1"
-        />
+      {src ? (
+        <img src={src} alt={name} className="h-full w-full object-cover" loading="lazy" />
       ) : (
-        <Building2 className={cn('text-muted-foreground', iconClassName ?? 'size-1/2')} />
+        <span className="font-display font-bold text-accent-foreground" style={{ fontSize: size * 0.42 }}>
+          {initial}
+        </span>
       )}
     </div>
   );

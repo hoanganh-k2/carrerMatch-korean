@@ -1,127 +1,51 @@
-import React from 'react';
-import { motion, useReducedMotion } from 'motion/react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CompanyLogo } from '@/components/ui/company-logo';
+import { Link } from 'react-router-dom';
 import { MapPin, Wallet } from 'lucide-react';
-import { springSoft } from '@/lib/motion';
-import { Job } from '@/lib/api';
+import type { Job } from '@/lib/api';
+import { CompanyLogo } from '@/components/ui/company-logo';
+import { Badge } from '@/components/ui/badge';
+import { MatchBadge } from '@/components/ui/match-badge';
+import { formatSalary, topikLabel, jobTypeLabel } from '@/lib/utils';
 
-interface JobCardProps {
-  job: Job;
-  onClick?: () => void;
-}
-
-export function JobCard({ job, onClick }: JobCardProps) {
-  const reduce = useReducedMotion();
-  const hasScore = typeof job.similarityScore === 'number';
-  const scorePct = hasScore ? Math.round(job.similarityScore! * 100) : 0;
-
-  const formatTopik = (level: string) => {
-    if (level?.startsWith('TOPIK_II_LEVEL_')) {
-      return `TOPIK II - Cấp ${level.replace('TOPIK_II_LEVEL_', '')}`;
-    }
-    if (level?.startsWith('TOPIK_I_LEVEL_')) {
-      return `TOPIK I - Cấp ${level.replace('TOPIK_I_LEVEL_', '')}`;
-    }
-    return 'Không yêu cầu TOPIK';
-  };
-
-  const formatSalary = (min: number | null, max: number | null) => {
-    if (min && max) {
-      return `${(min / 1000000).toFixed(0)}M - ${(max / 1000000).toFixed(0)}M VND`;
-    }
-    if (min) return `Từ ${(min / 1000000).toFixed(0)}M VND`;
-    if (max) return `Lên đến ${(max / 1000000).toFixed(0)}M VND`;
-    return 'Thỏa thuận';
-  };
+export function JobCard({ job }: { job: Job }) {
+  const hasMatch = typeof job.similarityScore === 'number';
 
   return (
-    <motion.div
-      whileHover={reduce ? undefined : { y: -5 }}
-      whileTap={reduce ? undefined : { scale: 0.99 }}
-      transition={springSoft}
-      className="h-full"
+    <Link
+      to={`/jobs/${job.id}`}
+      className="group flex h-full flex-col gap-4 rounded-lg border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
-    <Card
-      onClick={onClick}
-      className={`group bg-card border transition-all duration-300 flex flex-col justify-between h-full hover:shadow-lg cursor-pointer ${
-        hasScore
-          ? 'border-primary/30 shadow-md shadow-primary/5 hover:border-primary/50'
-          : 'border-border hover:border-primary/30'
-      }`}
-    >
-      <CardHeader className="relative pb-2">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <Badge
-            variant="outline"
-            className="bg-accent text-accent-foreground border-accent rounded-md py-0.5 text-[10px] font-semibold"
-          >
-            {formatTopik(job.minTopikRequired)}
-          </Badge>
-
-          {hasScore && (
-            <Badge variant="spark" className="rounded-md font-bold text-[10px] tracking-wide">
-              ĐỘ PHÙ HỢP AI: {scorePct}%
-            </Badge>
-          )}
-        </div>
-
-        <div className="flex items-start gap-3">
-          <CompanyLogo
-            logoUrl={job.company?.logoUrl}
-            name={job.company?.companyName}
-            className="size-11"
-            iconClassName="size-5"
-          />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <CompanyLogo name={job.company?.companyName} logoUrl={job.company?.logoUrl} size={44} />
           <div className="min-w-0">
-            <CardTitle className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-              {job.title}
-            </CardTitle>
-            {job.company?.companyName && (
-              <span className="text-xs text-muted-foreground font-medium">{job.company.companyName}</span>
-            )}
+            <p className="truncate text-sm font-medium text-foreground">{job.company?.companyName ?? 'Công ty Hàn Quốc'}</p>
+            <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3 shrink-0" /> {job.location}
+            </p>
           </div>
         </div>
-      </CardHeader>
+        {hasMatch && <MatchBadge score={job.similarityScore!} size="sm" />}
+      </div>
 
-      <CardContent className="py-2 flex-grow space-y-4">
-        <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">{job.description}</p>
+      <h3 className="line-clamp-2 font-display text-lg font-bold leading-snug tracking-tight group-hover:text-primary">
+        {job.title}
+      </h3>
 
-        <div className="grid grid-cols-2 gap-y-2 text-xs">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{job.location}</span>
-          </div>
-          <div className="flex items-center gap-1.5 justify-end">
-            <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <span className="text-primary font-bold font-mono truncate">
-              {formatSalary(job.salaryMin, job.salaryMax)}
-            </span>
-          </div>
-        </div>
-      </CardContent>
+      <div className="mt-auto flex flex-wrap items-center gap-1.5">
+        <Badge variant="cobalt">{topikLabel(job.minTopikRequired)}</Badge>
+        {job.jobType && <Badge variant="outline">{jobTypeLabel(job.jobType)}</Badge>}
+        {job.requiredSkills.slice(0, 2).map((s) => (
+          <Badge key={s}>{s}</Badge>
+        ))}
+        {job.requiredSkills.length > 2 && (
+          <Badge variant="outline">+{job.requiredSkills.length - 2}</Badge>
+        )}
+      </div>
 
-      <CardFooter className="pt-4 border-t border-border bg-secondary/40 flex flex-wrap gap-1.5">
-        <div className="flex flex-wrap gap-1 w-full mb-3">
-          {job.requiredSkills.slice(0, 6).map((skill, index) => (
-            <span
-              key={index}
-              className="px-2 py-0.5 rounded text-[10px] font-medium bg-background text-foreground/70 border border-border"
-            >
-              {skill}
-            </span>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className="w-full text-center text-xs font-bold rounded-lg bg-foreground text-background hover:bg-primary hover:text-primary-foreground transition-all py-2 cursor-pointer"
-        >
-          Xem chi tiết và ứng tuyển
-        </button>
-      </CardFooter>
-    </Card>
-    </motion.div>
+      <div className="flex items-center gap-1.5 border-t border-border pt-3 text-sm font-medium text-foreground">
+        <Wallet className="h-4 w-4 text-muted-foreground" />
+        <span className="signage-num">{formatSalary(job.salaryMin, job.salaryMax)}</span>
+      </div>
+    </Link>
   );
 }

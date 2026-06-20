@@ -1,339 +1,164 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Users, Loader2, Search, ShieldCheck, Ban, KeyRound, X } from 'lucide-react';
-import { useAuth } from '@/context/auth-context';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, Lock, Unlock, ShieldCheck, ChevronDown } from 'lucide-react';
 import {
-  fetchAllUsers,
-  updateUserRole,
-  setUserActive,
-  fetchAllPermissions,
-  fetchUserPermissions,
-  assignPermission,
-  revokePermission,
-  seedPermissions,
+  fetchAllUsers, updateUserRole, setUserActive, fetchAllPermissions,
+  fetchUserPermissions, assignPermission, revokePermission, seedPermissions,
 } from '@/lib/api';
+import { useAuth } from '@/context/auth-context';
+import { DashboardShell, adminNav } from '@/components/layout/dashboard-shell';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { LoadingBlock } from '@/components/ui/spinner';
+import { Pagination, paginate } from '@/components/ui/pagination';
+import { cn } from '@/lib/utils';
 
 const ROLES = ['candidate', 'recruiter', 'admin'];
-const ROLE_LABELS: Record<string, string> = {
-  candidate: 'Ứng viên',
-  recruiter: 'Nhà tuyển dụng',
-  admin: 'Admin',
-};
+const PER_PAGE = 6;
 
-export default function AdminUsersPage() {
-  const { token, userId: myId } = useAuth();
+export function AdminUsersPage() {
+  const { token } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
+  const [perms, setPerms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [permUser, setPermUser] = useState<any | null>(null);
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
 
-  const load = async () => {
-    if (!token) return;
-    try {
-      setUsers(await fetchAllUsers(token));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const reload = () => token && fetchAllUsers(token).then(setUsers).catch(() => {});
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!token) return;
+    Promise.allSettled([fetchAllUsers(token), fetchAllPermissions(token)]).then(([u, p]) => {
+      if (u.status === 'fulfilled') setUsers(u.value);
+      if (p.status === 'fulfilled') setPerms(p.value);
+      setLoading(false);
+    });
   }, [token]);
 
   const filtered = useMemo(() => {
-    return users.filter((u) => {
-      const name = u.jobUser?.fullName || u.company?.companyName || '';
-      const matchSearch =
-        !search ||
-        u.email?.toLowerCase().includes(search.toLowerCase()) ||
-        name.toLowerCase().includes(search.toLowerCase());
-      const matchRole = !roleFilter || u.role === roleFilter;
-      return matchSearch && matchRole;
-    });
-  }, [users, search, roleFilter]);
+    const t = q.trim().toLowerCase();
+    return t ? users.filter((u) => (u.email ?? '').toLowerCase().includes(t)) : users;
+  }, [users, q]);
 
-  const handleRoleChange = async (id: string, role: string) => {
+  useEffect(() => setPage(1), [q]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const paged = paginate(filtered, safePage, PER_PAGE);
+
+  const onSeed = async () => {
     if (!token) return;
-    setBusyId(id);
-    try {
-      await updateUserRole(id, role, token);
-      await load();
-    } catch (err: any) {
-      alert(err.message || 'Đổi role thất bại');
-    } finally {
-      setBusyId(null);
-    }
+    await seedPermissions(token).catch(() => {});
+    fetchAllPermissions(token).then(setPerms).catch(() => {});
   };
-
-  const handleToggleActive = async (id: string, isActive: boolean) => {
-    if (!token) return;
-    setBusyId(id);
-    try {
-      await setUserActive(id, !isActive, token);
-      await load();
-    } catch (err: any) {
-      alert(err.message || 'Thao tác thất bại');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  if (loading) {
-    return (
-      <main className="max-w-6xl mx-auto px-6 py-24 text-center">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
-      </main>
-    );
-  }
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 w-full space-y-6">
-      <div className="space-y-2">
-        <p className="eyebrow">Quản trị</p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <Users className="w-6 h-6 text-primary" />
-          Quản lý người dùng
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Tổng {users.length} người dùng. Tìm kiếm, đổi vai trò, khóa/mở và gán quyền.
-        </p>
+    <DashboardShell
+      nav={adminNav}
+      kr="사용자 관리"
+      eyebrow="Quản trị"
+      title="Người dùng"
+      description="Quản lý vai trò, trạng thái và quyền của người dùng."
+      actions={perms.length === 0 ? <Button variant="outline" onClick={onSeed}>Tạo quyền mặc định</Button> : undefined}
+    >
+      <div className="relative mb-5 max-w-md">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo email…" className="pl-10" />
       </div>
 
-      {/* Bộ lọc */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo email hoặc tên..."
-            className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-md text-xs focus:outline-none focus:border-primary"
-          />
-        </div>
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="px-3 py-2.5 bg-background border border-border rounded-md text-xs focus:outline-none focus:border-primary"
-        >
-          <option value="">Tất cả vai trò</option>
-          {ROLES.map((r) => (
-            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Bảng */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-secondary text-muted-foreground uppercase text-[10px] tracking-wider">
-              <tr>
-                <th className="text-left px-4 py-3 font-bold">Người dùng</th>
-                <th className="text-left px-4 py-3 font-bold">Vai trò</th>
-                <th className="text-left px-4 py-3 font-bold">Trạng thái</th>
-                <th className="text-right px-4 py-3 font-bold">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground italic">
-                    Không tìm thấy người dùng nào
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((u) => {
-                  const name = u.jobUser?.fullName || u.company?.companyName || '—';
-                  const isSelf = u.id === myId;
-                  return (
-                    <tr key={u.id} className="hover:bg-secondary/40">
-                      <td className="px-4 py-3">
-                        <span className="block font-bold text-foreground">{name}</span>
-                        <span className="text-muted-foreground">{u.email}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={u.role}
-                          disabled={busyId === u.id || isSelf}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          className="px-2 py-1.5 bg-background border border-border rounded-lg text-xs disabled:opacity-50"
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        {u.isActive ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Hoạt động
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-destructive font-semibold">
-                            <Ban className="w-3.5 h-3.5" /> Đã khóa
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setPermUser(u)}
-                            className="px-2.5 py-1.5 border border-border rounded-lg font-semibold text-foreground hover:bg-secondary flex items-center gap-1.5"
-                          >
-                            <KeyRound className="w-3.5 h-3.5" /> Quyền
-                          </button>
-                          {!isSelf && (
-                            <button
-                              onClick={() => handleToggleActive(u.id, u.isActive)}
-                              disabled={busyId === u.id}
-                              className={`px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 disabled:opacity-50 ${
-                                u.isActive
-                                  ? 'border border-destructive/40 text-destructive hover:bg-destructive/10'
-                                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                              }`}
-                            >
-                              {u.isActive ? 'Khóa' : 'Mở khóa'}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {permUser && (
-        <PermissionsDialog
-          user={permUser}
-          token={token!}
-          onClose={() => setPermUser(null)}
-        />
+      {loading ? (
+        <LoadingBlock />
+      ) : (
+        <>
+          <p className="mb-3 text-sm text-muted-foreground"><span className="signage-num font-medium text-foreground">{filtered.length}</span> người dùng</p>
+          <div className="flex flex-col gap-2">
+            {paged.map((u, i) => (
+              <UserRow key={u.id} ordinal={(safePage - 1) * PER_PAGE + i + 1} user={u} perms={perms} token={token!} onChanged={reload} />
+            ))}
+          </div>
+          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
+        </>
       )}
-    </main>
+    </DashboardShell>
   );
 }
 
-function PermissionsDialog({
-  user,
-  token,
-  onClose,
-}: {
-  user: any;
-  token: string;
-  onClose: () => void;
-}) {
-  const [allPerms, setAllPerms] = useState<any[]>([]);
-  const [userPerms, setUserPerms] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+function UserRow({ ordinal, user, perms, token, onChanged }: { ordinal: number; user: any; perms: any[]; token: string; onChanged: () => void }) {
+  const active = user.isActive ?? true;
+  const [open, setOpen] = useState(false);
+  const [assigned, setAssigned] = useState<Set<string>>(new Set());
+  const [loadedPerms, setLoadedPerms] = useState(false);
 
-  const load = async () => {
-    try {
-      const [all, mine] = await Promise.all([
-        fetchAllPermissions(token),
-        fetchUserPermissions(user.id, token),
-      ]);
-      setAllPerms(all);
-      setUserPerms(mine);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const toggleOpen = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !loadedPerms) {
+      try {
+        const up = await fetchUserPermissions(user.id, token);
+        setAssigned(new Set(up.map((p: any) => p.permissionId ?? p.id ?? p.permission?.permissionId)));
+      } catch { /* ignore */ }
+      setLoadedPerms(true);
     }
   };
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const ownedIds = new Set(userPerms.map((up) => up.permissionId ?? up.permission?.permissionId));
-
-  const toggle = async (permissionId: string, owned: boolean) => {
-    setBusy(permissionId);
+  const togglePerm = async (permId: string) => {
+    const has = assigned.has(permId);
+    setAssigned((s) => { const n = new Set(s); has ? n.delete(permId) : n.add(permId); return n; });
     try {
-      if (owned) {
-        await revokePermission(user.id, permissionId, token);
-      } else {
-        await assignPermission(user.id, permissionId, token);
-      }
-      await load();
-    } catch (err: any) {
-      alert(err.message || 'Thao tác thất bại');
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handleSeed = async () => {
-    try {
-      await seedPermissions(token);
-      await load();
-    } catch (err: any) {
-      alert(err.message || 'Seed quyền thất bại');
-    }
+      if (has) await revokePermission(user.id, permId, token);
+      else await assignPermission(user.id, permId, token);
+    } catch { /* revert on error */ }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-lg bg-card border border-border rounded-lg shadow-2xl max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-foreground">Phân quyền</h2>
-            <p className="text-[11px] text-muted-foreground">{user.email}</p>
+    <div className="rounded-lg border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="signage-num w-7 shrink-0 text-center text-sm font-semibold text-muted-foreground">{ordinal}</span>
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 truncate font-medium">
+              {user.email}
+              {!active && <Badge variant="outline">Đã khóa</Badge>}
+            </p>
+            <p className="text-xs text-muted-foreground">{user.jobUser?.fullName ?? user.company?.companyName ?? ''}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="w-5 h-5" />
-          </button>
         </div>
-        <div className="p-5 overflow-y-auto flex-1">
-          {loading ? (
-            <div className="py-10 text-center"><Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" /></div>
-          ) : allPerms.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-xs text-muted-foreground mb-3">Chưa có quyền nào trong hệ thống.</p>
-              <button onClick={handleSeed} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold">
-                Khởi tạo quyền mặc định
-              </button>
-            </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Select value={user.role} onChange={(e) => updateUserRole(user.id, e.target.value, token).then(onChanged)} className="h-9 w-auto">
+            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => setUserActive(user.id, !active, token).then(onChanged)} className={active ? 'text-destructive' : ''}>
+            {active ? <><Lock className="h-4 w-4" /> Khóa</> : <><Unlock className="h-4 w-4" /> Mở</>}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={toggleOpen}>
+            <ShieldCheck className="h-4 w-4" /> Quyền <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+          </Button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="border-t border-border p-4">
+          {perms.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Chưa có quyền nào trong hệ thống. Bấm "Tạo quyền mặc định".</p>
           ) : (
-            <div className="space-y-2">
-              {allPerms.map((p) => {
-                const owned = ownedIds.has(p.permissionId);
+            <div className="flex flex-wrap gap-2">
+              {perms.map((p) => {
+                const pid = p.permissionId ?? p.id;
+                const has = assigned.has(pid);
                 return (
-                  <label
-                    key={p.permissionId}
-                    className="flex items-center justify-between gap-3 p-3 bg-background border border-border rounded-md cursor-pointer"
+                  <button
+                    key={pid}
+                    onClick={() => togglePerm(pid)}
+                    className={cn('rounded-sm border px-2.5 py-1 text-xs font-medium transition-colors', has ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-foreground/30')}
                   >
-                    <div className="min-w-0">
-                      <span className="block font-bold text-xs text-foreground">{p.name}</span>
-                      <span className="text-[11px] text-muted-foreground">{p.description}</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={owned}
-                      disabled={busy === p.permissionId}
-                      onChange={() => toggle(p.permissionId, owned)}
-                      className="w-4 h-4 accent-primary shrink-0"
-                    />
-                  </label>
+                    {p.name}
+                  </button>
                 );
               })}
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,232 +1,134 @@
-import React, { useEffect, useState } from 'react';
-import { Building2, Save, Loader2, AlertCircle, CheckCircle2, BadgeCheck, UploadCloud } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/auth-context';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, BadgeCheck } from 'lucide-react';
 import { fetchMyCompany, createCompany, updateCompany, uploadFile, getUploadedFileUrl } from '@/lib/api';
+import { useAuth } from '@/context/auth-context';
+import { DashboardShell, recruiterNav } from '@/components/layout/dashboard-shell';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { LoadingBlock } from '@/components/ui/spinner';
 
-const inputClass =
-  'w-full px-3 py-2.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
+const EMPTY = {
+  companyName: '', koreanCompanyName: '', industry: '', companySize: '', website: '', location: '', description: '', logoUrl: '',
+};
 
-export default function CompanyPage() {
+export function RecruiterCompanyPage() {
   const { token } = useAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
+  const [exists, setExists] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [isVerified, setIsVerified] = useState(false);
-  const [companyName, setCompanyName] = useState('');
-  const [koreanCompanyName, setKoreanCompanyName] = useState('');
-  const [website, setWebsite] = useState('');
-  const [industry, setIndustry] = useState('Information Technology');
-  const [companySize, setCompanySize] = useState('1-50');
-  const [location, setLocation] = useState('');
-  const [description, setDescription] = useState('');
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [form, setForm] = useState({ ...EMPTY });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
 
   useEffect(() => {
     if (!token) return;
     fetchMyCompany(token)
       .then((c) => {
-        if (!c || !c.companyId) return;
-        setCompanyId(c.companyId);
-        setIsVerified(Boolean(c.isVerified));
-        setCompanyName(c.companyName ?? '');
-        setKoreanCompanyName(c.koreanCompanyName ?? '');
-        setWebsite(c.website ?? '');
-        setIndustry(c.industry ?? 'Information Technology');
-        setCompanySize(c.companySize ?? '1-50');
-        setLocation(c.location ?? '');
-        setDescription(c.description ?? '');
-        setLogoUrl(c.logoUrl ?? null);
+        if (c && (c.companyId || c.id)) {
+          setExists(true);
+          setCompanyId(c.companyId ?? c.id);
+          setVerified(!!(c.isVerified ?? c.is_verified));
+          setForm({
+            companyName: c.companyName ?? '', koreanCompanyName: c.koreanCompanyName ?? '', industry: c.industry ?? '',
+            companySize: c.companySize ?? '', website: c.website ?? '', location: c.location ?? '',
+            description: c.description ?? '', logoUrl: c.logoUrl ?? '',
+          });
+        }
       })
-      .catch(() => {
-        // Chưa có công ty → form trống để tạo mới
-      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!token || !e.target.files?.[0]) return;
-    setUploadingLogo(true);
-    try {
-      const result = await uploadFile(e.target.files[0], 'logo', token);
-      setLogoUrl(result.url);
-    } catch (err: any) {
-      alert(err.message || 'Tải logo thất bại');
-    } finally {
-      setUploadingLogo(false);
-    }
+  const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<any>) => setForm((s) => ({ ...s, [k]: e.target.value }));
+
+  const onLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    const { url } = await uploadFile(file, 'logo', token);
+    setForm((s) => ({ ...s, logoUrl: url }));
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !companyName.trim()) return;
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
+  const save = async () => {
+    if (!token) return;
+    setSaving(true); setMsg(''); setErr('');
     try {
-      const payload = {
-        companyName: companyName.trim(),
-        koreanCompanyName: koreanCompanyName.trim() || undefined,
-        website: website.trim() || undefined,
-        industry,
-        companySize,
-        location: location.trim() || undefined,
-        description: description.trim() || undefined,
-        logoUrl: logoUrl || undefined,
-      };
-      if (companyId) {
-        await updateCompany(companyId, payload, token);
+      if (exists && companyId) {
+        await updateCompany(companyId, form, token);
       } else {
-        const created = await createCompany(payload, token);
-        setCompanyId(created.companyId ?? null);
+        const c = await createCompany(form, token);
+        setExists(true);
+        setCompanyId(c.companyId ?? c.id);
       }
-      setSuccess(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      setError(err.message || 'Lưu hồ sơ công ty thất bại');
+      setMsg('Đã lưu hồ sơ công ty.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Lưu thất bại');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <main className="max-w-3xl mx-auto px-6 py-24 text-center">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
-      </main>
-    );
-  }
+  const logo = getUploadedFileUrl(form.logoUrl);
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10 w-full space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="eyebrow">Công ty</p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-primary" />
-            Hồ sơ công ty
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {companyId
-              ? 'Cập nhật thông tin hiển thị với ứng viên.'
-              : 'Tạo hồ sơ công ty để bắt đầu đăng tin tuyển dụng.'}
-          </p>
-        </div>
-        {companyId && (
-          <span
-            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${
-              isVerified
-                ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/25'
-                : 'bg-amber-500/10 text-amber-700 border border-amber-500/25'
-            }`}
-          >
-            <BadgeCheck className="w-4 h-4" />
-            {isVerified ? 'Đã xác thực' : 'Chờ admin duyệt'}
-          </span>
-        )}
-      </div>
+    <DashboardShell
+      nav={recruiterNav}
+      kr="기업 프로필"
+      eyebrow="Nhà tuyển dụng"
+      title="Hồ sơ công ty"
+      description={exists ? 'Cập nhật thông tin doanh nghiệp của bạn.' : 'Tạo hồ sơ công ty để bắt đầu đăng tin tuyển dụng.'}
+      actions={verified ? <Badge variant="cobalt"><BadgeCheck className="h-3 w-3" /> Đã xác thực</Badge> : undefined}
+    >
+      {loading ? (
+        <LoadingBlock />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Thông tin doanh nghiệp</CardTitle>
+            <CardDescription>Thông tin này hiển thị công khai với ứng viên.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={() => fileRef.current?.click()} className="group relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-border bg-accent text-xl font-bold text-accent-foreground">
+                {logo ? <img src={logo} alt="" className="h-full w-full object-cover" /> : (form.companyName.charAt(0) || '·')}
+                <span className="absolute inset-0 flex items-center justify-center bg-foreground/50 opacity-0 transition-opacity group-hover:opacity-100"><Camera className="h-5 w-5 text-background" /></span>
+              </button>
+              <button type="button" onClick={() => fileRef.current?.click()} className="text-sm text-primary hover:underline">Tải logo</button>
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={onLogo} />
+            </div>
 
-      {success && (
-        <div className="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>Đã lưu hồ sơ công ty thành công!</span>
-        </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tên công ty"><Input value={form.companyName} onChange={set('companyName')} placeholder="VD: FPT Software" /></Field>
+              <Field label="Tên tiếng Hàn"><Input value={form.koreanCompanyName} onChange={set('koreanCompanyName')} lang="ko" placeholder="한국어 이름" /></Field>
+              <Field label="Ngành"><Input value={form.industry} onChange={set('industry')} placeholder="VD: Phần mềm, Fintech" /></Field>
+              <Field label="Quy mô"><Input value={form.companySize} onChange={set('companySize')} placeholder="VD: 100-500 nhân sự" /></Field>
+              <Field label="Website"><Input value={form.website} onChange={set('website')} placeholder="https://..." /></Field>
+              <Field label="Địa điểm"><Input value={form.location} onChange={set('location')} placeholder="VD: Hà Nội / Seoul" /></Field>
+            </div>
+            <Field label="Giới thiệu"><Textarea value={form.description} onChange={set('description')} placeholder="Mô tả về công ty…" className="min-h-32" /></Field>
+
+            <div className="flex items-center gap-3">
+              <Button onClick={save} disabled={saving || !form.companyName.trim()}>{saving ? 'Đang lưu…' : exists ? 'Lưu thay đổi' : 'Tạo hồ sơ công ty'}</Button>
+              {msg && <span className="text-sm text-primary">{msg}</span>}
+              {err && <span className="text-sm text-destructive">{err}</span>}
+            </div>
+          </CardContent>
+        </Card>
       )}
-      {error && (
-        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+    </DashboardShell>
+  );
+}
 
-      <form onSubmit={handleSave} className="bg-card border border-border rounded-lg p-6 space-y-5">
-        {/* Logo */}
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-md bg-secondary border border-border flex items-center justify-center overflow-hidden shrink-0">
-            {logoUrl ? (
-              <img src={getUploadedFileUrl(logoUrl)} alt="logo" className="w-full h-full object-cover" />
-            ) : (
-              <Building2 className="w-7 h-7 text-muted-foreground" />
-            )}
-          </div>
-          <label className="cursor-pointer">
-            <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all">
-              {uploadingLogo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-              Tải logo công ty
-            </span>
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Tên công ty *
-            </label>
-            <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} required placeholder="VD: Hanbit IT Solutions" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Tên tiếng Hàn (회사명)
-            </label>
-            <input value={koreanCompanyName} onChange={(e) => setKoreanCompanyName(e.target.value)} className={inputClass} placeholder="VD: 한빛 IT 솔루션" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Website
-            </label>
-            <input value={website} onChange={(e) => setWebsite(e.target.value)} className={inputClass} placeholder="https://..." />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Ngành
-            </label>
-            <input value={industry} onChange={(e) => setIndustry(e.target.value)} className={inputClass} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Quy mô
-            </label>
-            <select value={companySize} onChange={(e) => setCompanySize(e.target.value)} className={inputClass}>
-              {['1-50', '51-200', '201-500', '500+'].map((s) => (
-                <option key={s} value={s}>{s} nhân viên</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Trụ sở
-            </label>
-            <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} placeholder="VD: Seoul / Hà Nội" />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Giới thiệu công ty
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className={`${inputClass} resize-none`}
-            placeholder="Văn hóa công ty, dự án tiêu biểu, chế độ đãi ngộ..."
-          />
-        </div>
-
-        <Button
-          type="submit"
-          disabled={saving || !companyName.trim()}
-          className="w-full py-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-md shadow-md shadow-primary/20 flex items-center justify-center gap-2"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          <span>{companyId ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ công ty'}</span>
-        </Button>
-      </form>
-    </main>
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium">{label}</label>
+      {children}
+    </div>
   );
 }

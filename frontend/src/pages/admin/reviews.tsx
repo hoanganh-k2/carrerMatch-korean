@@ -1,98 +1,76 @@
-import React, { useEffect, useState } from 'react';
-import { Star, Loader2, Trash2, MessageSquare } from 'lucide-react';
-import { useAuth } from '@/context/auth-context';
+import { useEffect, useState } from 'react';
+import { Trash2, Star, MessageSquare } from 'lucide-react';
 import { fetchAllReviewsAdmin, deleteReview } from '@/lib/api';
+import { useAuth } from '@/context/auth-context';
+import { DashboardShell, adminNav } from '@/components/layout/dashboard-shell';
+import { Button } from '@/components/ui/button';
+import { LoadingBlock } from '@/components/ui/spinner';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Pagination, paginate } from '@/components/ui/pagination';
+import { timeAgo, cn } from '@/lib/utils';
 
-export default function AdminReviewsPage() {
+const PER_PAGE = 6;
+
+export function AdminReviewsPage() {
   const { token } = useAuth();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
-
-  const load = async () => {
-    if (!token) return;
-    try {
-      setReviews(await fetchAllReviewsAdmin(token));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!token) return;
+    fetchAllReviewsAdmin(token).then(setReviews).catch(() => {}).finally(() => setLoading(false));
   }, [token]);
 
-  const handleDelete = async (id: string) => {
-    if (!token) return;
-    if (!confirm('Xóa đánh giá này?')) return;
-    setBusyId(id);
-    try {
-      await deleteReview(id, token);
-      await load();
-    } catch (err: any) {
-      alert(err.message || 'Xóa đánh giá thất bại');
-    } finally {
-      setBusyId(null);
-    }
+  const remove = async (id: string) => {
+    if (!token || !confirm('Xóa đánh giá này?')) return;
+    setReviews((xs) => xs.filter((r) => (r.id ?? r.reviewId) !== id));
+    deleteReview(id, token).catch(() => {});
   };
 
-  if (loading) {
-    return (
-      <main className="max-w-5xl mx-auto px-6 py-24 text-center">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
-      </main>
-    );
-  }
+  const totalPages = Math.max(1, Math.ceil(reviews.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const paged = paginate(reviews, safePage, PER_PAGE);
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10 w-full space-y-6">
-      <div className="space-y-2">
-        <p className="eyebrow">Kiểm duyệt</p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <MessageSquare className="w-6 h-6 text-primary" />
-          Kiểm duyệt đánh giá công ty
-        </h1>
-        <p className="text-sm text-muted-foreground">Tổng {reviews.length} đánh giá. Gỡ các đánh giá vi phạm.</p>
-      </div>
-
-      <div className="space-y-3">
-        {reviews.length === 0 ? (
-          <div className="bg-card border border-border rounded-lg px-4 py-10 text-center text-muted-foreground italic text-xs">
-            Chưa có đánh giá nào
-          </div>
-        ) : (
-          reviews.map((r) => (
-            <div key={r.id} className="bg-card border border-border rounded-lg p-4 flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-sm text-foreground">{r.companyName}</span>
-                  <span className="flex items-center gap-0.5 text-amber-500">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`w-3.5 h-3.5 ${i < r.rating ? 'fill-amber-500' : 'text-muted'}`} />
-                    ))}
-                  </span>
+    <DashboardShell nav={adminNav} kr="리뷰 관리" eyebrow="Quản trị" title="Kiểm duyệt đánh giá"
+      description={`Tổng ${reviews.length} đánh giá công ty.`}>
+      {loading ? (
+        <LoadingBlock />
+      ) : reviews.length === 0 ? (
+        <EmptyState icon={<MessageSquare />} title="Chưa có đánh giá nào" />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {paged.map((r, i) => {
+            const id = r.id ?? r.reviewId;
+            return (
+              <div key={id} className="rounded-lg border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="signage-num w-7 shrink-0 text-center text-sm font-semibold text-muted-foreground">{(safePage - 1) * PER_PAGE + i + 1}</span>
+                    <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{r.companyName ?? r.company?.companyName ?? 'Công ty'}</span>
+                      <span className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} className={cn('h-3.5 w-3.5', n <= (r.rating ?? 0) ? 'fill-star text-star' : 'text-muted-foreground/40')} />
+                        ))}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-sm text-foreground/90">{r.reviewText}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {r.isAnonymous ? 'Ẩn danh' : (r.reviewerName ?? r.candidate?.fullName ?? 'Ứng viên')} · {timeAgo(r.createdAt)}
+                    </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="shrink-0 text-destructive" onClick={() => remove(id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
-                <p className="text-xs text-foreground/80 leading-relaxed">{r.reviewText}</p>
-                <span className="text-[10px] text-muted-foreground block mt-1.5">
-                  {r.isAnonymous ? 'Ẩn danh' : r.reviewerName} • {r.reviewerEmail} •{' '}
-                  {new Date(r.createdAt).toLocaleDateString('vi-VN')}
-                </span>
               </div>
-              <button
-                onClick={() => handleDelete(r.id)}
-                disabled={busyId === r.id}
-                className="px-3 py-2 border border-destructive/40 text-destructive font-semibold text-xs rounded-lg hover:bg-destructive/10 flex items-center gap-1.5 shrink-0 disabled:opacity-50"
-              >
-                {busyId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                Xóa
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-    </main>
+            );
+          })}
+          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
+        </div>
+      )}
+    </DashboardShell>
   );
 }

@@ -1,359 +1,178 @@
-import React, { useEffect, useState } from 'react';
-import { User, Save, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchMyJobUserProfile, updateMyJobUserProfile } from '@/lib/api';
+import { useAuth } from '@/context/auth-context';
+import { computeReadiness } from '@/lib/readiness';
+import { DashboardShell, candidateNav } from '@/components/layout/dashboard-shell';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { SkillPicker } from '@/components/skill-picker';
-import { useAuth } from '@/context/auth-context';
-import { fetchMyJobUserProfile, updateMyJobUserProfile } from '@/lib/api';
+import { LoadingBlock } from '@/components/ui/spinner';
 
-const TOPIK_OPTIONS = [
-  { value: 'NONE', label: 'Chưa có chứng chỉ' },
-  { value: 'TOPIK_I_LEVEL_1', label: 'TOPIK I - Cấp 1' },
-  { value: 'TOPIK_I_LEVEL_2', label: 'TOPIK I - Cấp 2' },
-  { value: 'TOPIK_II_LEVEL_3', label: 'TOPIK II - Cấp 3' },
-  { value: 'TOPIK_II_LEVEL_4', label: 'TOPIK II - Cấp 4' },
-  { value: 'TOPIK_II_LEVEL_5', label: 'TOPIK II - Cấp 5' },
-  { value: 'TOPIK_II_LEVEL_6', label: 'TOPIK II - Cấp 6' },
+const TOPIKS = [
+  { value: 'NONE', label: 'Chưa có / mới học' },
+  { value: 'TOPIK_I_LEVEL_1', label: 'TOPIK 1' },
+  { value: 'TOPIK_I_LEVEL_2', label: 'TOPIK 2' },
+  { value: 'TOPIK_II_LEVEL_3', label: 'TOPIK 3' },
+  { value: 'TOPIK_II_LEVEL_4', label: 'TOPIK 4' },
+  { value: 'TOPIK_II_LEVEL_5', label: 'TOPIK 5' },
+  { value: 'TOPIK_II_LEVEL_6', label: 'TOPIK 6' },
 ];
 
-const LOCATIONS = ['Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh', 'Seoul', 'Busan', 'Remote'];
-const TARGET_ROLES = ['BRSE', 'COMTOR', 'SE', 'QA', 'PM'];
+const ROLES = ['', 'BrSE', 'Comtor', 'SE', 'QA', 'PM'];
 
-const inputClass =
-  'w-full px-3 py-2.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all';
-
-export default function ProfilePage() {
+export function ProfilePage() {
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
 
-  // Form fields
-  const [fullName, setFullName] = useState('');
-  const [topikLevel, setTopikLevel] = useState('NONE');
-  const [koreanScore, setKoreanScore] = useState<string>('');
-  const [isBrSE, setIsBrSE] = useState(false);
+  const [topik, setTopik] = useState('NONE');
+  const [years, setYears] = useState(0);
   const [skills, setSkills] = useState<string[]>([]);
-  const [yearsExperience, setYearsExperience] = useState<string>('');
-  const [desiredSalaryMin, setDesiredSalaryMin] = useState<string>('');
-  const [desiredSalaryMax, setDesiredSalaryMax] = useState<string>('');
-  const [jobTypePrefs, setJobTypePrefs] = useState('fulltime');
-  const [locationPrefs, setLocationPrefs] = useState<string[]>([]);
-  const [targetKoreanRole, setTargetKoreanRole] = useState('');
+  const [salaryMin, setSalaryMin] = useState<number | ''>('');
+  const [salaryMax, setSalaryMax] = useState<number | ''>('');
+  const [locations, setLocations] = useState('');
+  const [targetRole, setTargetRole] = useState('');
+  const [isBrSE, setIsBrSE] = useState(false);
   const [openToWork, setOpenToWork] = useState(true);
-  const [completeness, setCompleteness] = useState(0);
 
   useEffect(() => {
     if (!token) return;
     fetchMyJobUserProfile(token)
       .then((p) => {
-        setFullName(p.fullName ?? '');
-        setTopikLevel(p.topikLevel ?? 'NONE');
-        setKoreanScore(p.koreanScore != null ? String(p.koreanScore) : '');
-        setIsBrSE(Boolean(p.isBrSE));
+        if (!p) return;
+        setTopik(p.topikLevel ?? 'NONE');
+        setYears(p.yearsExperience ?? 0);
         setSkills(p.skillsExtracted ?? []);
-        setYearsExperience(p.yearsExperience != null ? String(p.yearsExperience) : '');
-        setDesiredSalaryMin(p.desiredSalaryMin != null ? String(p.desiredSalaryMin) : '');
-        setDesiredSalaryMax(p.desiredSalaryMax != null ? String(p.desiredSalaryMax) : '');
-        setJobTypePrefs(p.jobTypePrefs ?? 'fulltime');
-        setLocationPrefs(p.locationPrefs ?? []);
-        setTargetKoreanRole(p.targetKoreanRole ?? '');
+        setSalaryMin(p.desiredSalaryMin ?? '');
+        setSalaryMax(p.desiredSalaryMax ?? '');
+        setLocations((p.locationPrefs ?? []).join(', '));
+        setTargetRole(p.targetKoreanRole ?? '');
+        setIsBrSE(!!p.isBrSE);
         setOpenToWork(p.openToWork ?? true);
-        setCompleteness(p.profileCompleteness ?? 0);
       })
-      .catch((err) => setError(err.message || 'Lỗi tải hồ sơ'))
+      .catch((e) => setErr(e instanceof Error ? e.message : 'Lỗi tải hồ sơ'))
       .finally(() => setLoading(false));
   }, [token]);
 
-  const toggleLocation = (loc: string) => {
-    setLocationPrefs((prev) =>
-      prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc],
-    );
-  };
+  const readiness = useMemo(
+    () => computeReadiness({ topikLevel: topik, skillCount: skills.length, yearsExperience: years, isBrSE, hasKoreanRole: !!targetRole }).score,
+    [topik, skills.length, years, isBrSE, targetRole],
+  );
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const save = async () => {
     if (!token) return;
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
+    setSaving(true); setMsg(''); setErr('');
     try {
-      await updateMyJobUserProfile(
-        {
-          fullName: fullName.trim() || undefined,
-          topikLevel,
-          koreanScore: koreanScore ? parseInt(koreanScore) : null,
-          isBrSE,
-          skillsExtracted: skills,
-          yearsExperience: yearsExperience ? parseFloat(yearsExperience) : null,
-          desiredSalaryMin: desiredSalaryMin ? parseInt(desiredSalaryMin) : null,
-          desiredSalaryMax: desiredSalaryMax ? parseInt(desiredSalaryMax) : null,
-          jobTypePrefs,
-          locationPrefs,
-          targetKoreanRole: targetKoreanRole || null,
-          openToWork,
-        },
-        token,
-      );
-      setSuccess(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      setError(err.message || 'Lưu hồ sơ thất bại');
+      await updateMyJobUserProfile({
+        topikLevel: topik,
+        yearsExperience: Number(years) || 0,
+        skillsExtracted: skills,
+        desiredSalaryMin: salaryMin === '' ? undefined : Number(salaryMin),
+        desiredSalaryMax: salaryMax === '' ? undefined : Number(salaryMax),
+        locationPrefs: locations.split(',').map((s) => s.trim()).filter(Boolean),
+        targetKoreanRole: targetRole || undefined,
+        isBrSE,
+        openToWork,
+      }, token);
+      setMsg('Đã lưu hồ sơ.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Cập nhật hồ sơ thất bại');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <main className="max-w-4xl mx-auto px-6 py-24 text-center">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
-      </main>
-    );
-  }
-
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10 w-full space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="eyebrow">Hồ sơ</p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <User className="w-6 h-6 text-primary" />
-            Hồ sơ ứng viên
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Hồ sơ càng đầy đủ, AI gợi ý việc làm càng chính xác. Khi bạn lưu, hệ thống tự sinh lại
-            vector kỹ năng cho matching.
-          </p>
+    <DashboardShell
+      nav={candidateNav}
+      kr="프로필"
+      eyebrow="Hồ sơ"
+      title="Hồ sơ ứng viên"
+      description="Hồ sơ càng đầy đủ, AI gợi ý việc càng chính xác."
+      actions={
+        <div className="flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">
+          Độ sẵn sàng <span className="signage-num font-bold">{readiness}%</span>
         </div>
-        <div className="shrink-0 text-center bg-accent rounded-md px-4 py-3">
-          <span className="block font-mono text-xl font-bold text-primary">
-            {Math.round(completeness * 100)}%
-          </span>
-          <span className="text-[10px] font-bold text-accent-foreground uppercase">Hoàn thiện</span>
-        </div>
-      </div>
+      }
+    >
+      {loading ? (
+        <LoadingBlock />
+      ) : (
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Năng lực</CardTitle>
+              <CardDescription>Tiếng Hàn, kinh nghiệm và kỹ năng IT.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Trình độ tiếng Hàn</label>
+                  <Select value={topik} onChange={(e) => setTopik(e.target.value)}>
+                    {TOPIKS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Số năm kinh nghiệm</label>
+                  <Input type="number" min={0} max={40} value={years} onChange={(e) => setYears(Number(e.target.value) || 0)} />
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Kỹ năng IT</label>
+                <SkillPicker value={skills} onChange={setSkills} columns />
+              </div>
+            </CardContent>
+          </Card>
 
-      {success && (
-        <div className="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>Đã lưu hồ sơ và cập nhật vector AI thành công! 화이팅!</span>
+          <Card>
+            <CardHeader>
+              <CardTitle>Mong muốn công việc</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Lương mong muốn tối thiểu (VND)</label>
+                  <Input type="number" min={0} step={1000000} value={salaryMin} onChange={(e) => setSalaryMin(e.target.value === '' ? '' : Number(e.target.value))} placeholder="VD: 15000000" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Lương mong muốn tối đa (VND)</label>
+                  <Input type="number" min={0} step={1000000} value={salaryMax} onChange={(e) => setSalaryMax(e.target.value === '' ? '' : Number(e.target.value))} placeholder="VD: 30000000" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Địa điểm mong muốn</label>
+                  <Input value={locations} onChange={(e) => setLocations(e.target.value)} placeholder="Hà Nội, Seoul, Remote" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Vai trò mục tiêu</label>
+                  <Select value={targetRole} onChange={(e) => setTargetRole(e.target.value)}>
+                    {ROLES.map((r) => <option key={r} value={r}>{r || 'Chưa xác định'}</option>)}
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={isBrSE} onChange={(e) => setIsBrSE(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
+                  Tôi đã/đang làm BrSE
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={openToWork} onChange={(e) => setOpenToWork(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
+                  Đang sẵn sàng tìm việc
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center gap-3">
+            <Button onClick={save} disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</Button>
+            {msg && <span className="text-sm text-primary">{msg}</span>}
+            {err && <span className="text-sm text-destructive">{err}</span>}
+          </div>
         </div>
       )}
-      {error && (
-        <div className="p-3.5 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      <form onSubmit={handleSave} className="space-y-8">
-        {/* Thông tin cơ bản */}
-        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
-          <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
-            Thông tin cơ bản
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Họ và tên
-              </label>
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className={inputClass}
-                placeholder="Nguyễn Văn A"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Số năm kinh nghiệm
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                value={yearsExperience}
-                onChange={(e) => setYearsExperience(e.target.value)}
-                className={inputClass}
-                placeholder="VD: 2.5"
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={openToWork}
-              onChange={(e) => setOpenToWork(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-border text-primary"
-            />
-            <span>
-              Đang tìm việc (Open to work) — cho phép nhà tuyển dụng tìm thấy hồ sơ của bạn qua AI
-              matching
-            </span>
-          </label>
-        </section>
-
-        {/* Năng lực tiếng Hàn */}
-        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
-          <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
-            Năng lực tiếng Hàn 한국어
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Trình độ TOPIK
-              </label>
-              <select
-                value={topikLevel}
-                onChange={(e) => setTopikLevel(e.target.value)}
-                className={inputClass}
-              >
-                {TOPIK_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Điểm TOPIK (0-300)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="300"
-                value={koreanScore}
-                onChange={(e) => setKoreanScore(e.target.value)}
-                className={inputClass}
-                placeholder="VD: 210"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Vai trò hướng tới
-              </label>
-              <select
-                value={targetKoreanRole}
-                onChange={(e) => setTargetKoreanRole(e.target.value)}
-                className={inputClass}
-              >
-                <option value="">-- Chọn vai trò --</option>
-                {TARGET_ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isBrSE}
-              onChange={(e) => setIsBrSE(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-border text-primary"
-            />
-            <span>Tôi đã có kinh nghiệm làm Kỹ sư cầu nối (BrSE)</span>
-          </label>
-        </section>
-
-        {/* Kỹ năng */}
-        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
-          <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
-            Kỹ năng chuyên môn
-          </h2>
-          <SkillPicker selected={skills} onChange={setSkills} label="Chọn kỹ năng của bạn" />
-        </section>
-
-        {/* Mong muốn công việc */}
-        <section className="bg-card border border-border rounded-lg p-6 space-y-5">
-          <h2 className="text-sm font-extrabold text-foreground uppercase tracking-wide">
-            Mong muốn công việc
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Lương tối thiểu (VND)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="1000000"
-                value={desiredSalaryMin}
-                onChange={(e) => setDesiredSalaryMin(e.target.value)}
-                className={inputClass}
-                placeholder="VD: 20000000"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Lương mong muốn (VND)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="1000000"
-                value={desiredSalaryMax}
-                onChange={(e) => setDesiredSalaryMax(e.target.value)}
-                className={inputClass}
-                placeholder="VD: 40000000"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Hình thức làm việc
-              </label>
-              <select
-                value={jobTypePrefs}
-                onChange={(e) => setJobTypePrefs(e.target.value)}
-                className={inputClass}
-              >
-                <option value="fulltime">Full-time</option>
-                <option value="parttime">Part-time</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="remote">Remote</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <span className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Khu vực mong muốn
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {LOCATIONS.map((loc) => {
-                const isSel = locationPrefs.includes(loc);
-                return (
-                  <button
-                    key={loc}
-                    type="button"
-                    onClick={() => toggleLocation(loc)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                      isSel
-                        ? 'bg-primary border-primary text-primary-foreground'
-                        : 'bg-background border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
-                    }`}
-                  >
-                    {loc}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <Button
-          type="submit"
-          disabled={saving}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-md shadow-md shadow-primary/20 flex items-center justify-center gap-2"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          <span>{saving ? 'Đang lưu và sinh vector AI...' : 'Lưu hồ sơ'}</span>
-        </Button>
-      </form>
-    </main>
+    </DashboardShell>
   );
 }

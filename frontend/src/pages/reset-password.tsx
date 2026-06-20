@@ -1,125 +1,67 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Lock, Sparkles, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { resetPassword } from '@/lib/api';
+import { AuthShell, AuthAlert } from '@/components/auth/auth-shell';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
-const inputClass =
-  'w-full pl-10 pr-10 py-3 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
-
-export default function ResetPasswordPage() {
+export function ResetPasswordPage() {
   const [params] = useSearchParams();
-  const token = params.get('token') ?? '';
   const navigate = useNavigate();
+  const token = params.get('token') ?? '';
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) {
-      setError('Mật khẩu phải có ít nhất 8 ký tự.');
-      return;
-    }
+    setError('');
     if (password !== confirm) {
-      setError('Mật khẩu xác nhận không khớp.');
+      setError('Mật khẩu nhập lại không khớp');
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       await resetPassword(token, password);
-      navigate('/login', { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Đặt lại mật khẩu thất bại.');
+      setDone(true);
+      setTimeout(() => navigate('/login', { replace: true }), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đặt lại mật khẩu thất bại');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!token) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md bg-card border border-border rounded-lg p-6 text-center">
-          <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-3" />
-          <p className="text-sm text-foreground font-semibold">Liên kết không hợp lệ</p>
-          <p className="text-xs text-muted-foreground mt-1">Thiếu mã đặt lại mật khẩu.</p>
-          <Link to="/forgot-password" className="inline-block mt-4 text-primary hover:underline text-xs font-semibold">
-            Yêu cầu liên kết mới →
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
-          <div className="px-6 pt-8 pb-6 border-b border-border text-center">
-            <h1 className="text-xl font-extrabold text-foreground">Đặt lại mật khẩu</h1>
-            <p className="text-xs text-muted-foreground mt-1">Nhập mật khẩu mới cho tài khoản của bạn.</p>
+    <AuthShell
+      kr="비밀번호 재설정"
+      title="Đặt lại mật khẩu"
+      subtitle="Tạo mật khẩu mới cho tài khoản của bạn."
+      footer={<Link to="/login" className="font-medium text-primary hover:underline">← Quay lại đăng nhập</Link>}
+    >
+      {!token ? (
+        <AuthAlert>Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu gửi lại từ trang Quên mật khẩu.</AuthAlert>
+      ) : done ? (
+        <AuthAlert tone="success">Đổi mật khẩu thành công! Đang chuyển đến trang đăng nhập…</AuthAlert>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {error && <AuthAlert>{error}</AuthAlert>}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="password" className="text-sm font-medium">Mật khẩu mới</label>
+            <Input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Tối thiểu 8 ký tự" />
           </div>
-
-          <div className="px-6 py-6">
-            {error && (
-              <div className="mb-4 p-3 rounded-md bg-destructive/5 border border-destructive/20 text-destructive text-[11px] flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Mật khẩu mới</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className={inputClass}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Xác nhận mật khẩu</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="••••••••"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-md shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {loading ? (
-                  <><RefreshCw className="w-4 h-4 animate-spin" /><span>Đang xử lý...</span></>
-                ) : (
-                  <><Sparkles className="w-4 h-4" /><span>Đặt lại mật khẩu</span></>
-                )}
-              </button>
-            </form>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="confirm" className="text-sm font-medium">Nhập lại mật khẩu</label>
+            <Input id="confirm" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Nhập lại mật khẩu mới" />
           </div>
-        </div>
-      </div>
-    </div>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Đang lưu…' : 'Đặt lại mật khẩu'}
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   );
 }

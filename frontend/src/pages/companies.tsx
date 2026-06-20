@@ -1,223 +1,148 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, MapPin, Users, ChevronLeft, ChevronRight, Search, HelpCircle, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Search, Building2, BadgeCheck, MapPin } from 'lucide-react';
+import { fetchCompanies } from '@/lib/api';
 import { Container } from '@/components/ui/container';
+import { Section } from '@/components/ui/section';
 import { PageHeader } from '@/components/ui/page-header';
+import { Input } from '@/components/ui/input';
+import { CompanyLogo } from '@/components/ui/company-logo';
+import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { fetchCompanies, getUploadedFileUrl } from '@/lib/api';
+import { LoadingBlock } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
+import { Stagger, StaggerItem } from '@/components/motion/stagger';
 
-const PAGE_SIZE = 12;
+const PER_PAGE = 9;
 
-export default function CompaniesPage() {
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [filtered, setFiltered] = useState<any[]>([]);
+interface CompanyLite {
+  id: string;
+  name: string;
+  koreanName?: string;
+  logoUrl?: string | null;
+  industry?: string;
+  location?: string;
+  isVerified?: boolean;
+  jobsCount?: number;
+}
+
+function normalizeCompany(c: any): CompanyLite {
+  return {
+    id: c.companyId ?? c.company_id ?? c.id,
+    name: c.companyName ?? c.company_name ?? 'Công ty',
+    koreanName: c.koreanCompanyName ?? c.korean_company_name,
+    logoUrl: c.logoUrl ?? c.logo_url ?? null,
+    industry: c.industry,
+    location: c.location,
+    isVerified: c.isVerified ?? c.is_verified,
+    jobsCount: c._count?.jobPostings ?? c.jobPostings?.length ?? c.jobsCount,
+  };
+}
+
+export function CompaniesPage() {
+  const [companies, setCompanies] = useState<CompanyLite[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const [error, setError] = useState('');
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
-    loadCompanies();
+    fetchCompanies()
+      .then((data) => setCompanies(data.map(normalizeCompany)))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Lỗi tải công ty'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const loadCompanies = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchCompanies();
-      setCompanies(data);
-      setFiltered(data);
-    } catch (err: any) {
-      setError(err.message || 'Lỗi tải danh sách công ty');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return companies;
+    return companies.filter(
+      (c) => c.name.toLowerCase().includes(term) || (c.industry ?? '').toLowerCase().includes(term),
+    );
+  }, [companies, q]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const q = e.target.value;
-    setSearch(q);
-    setCurrentPage(1);
-    if (!q.trim()) {
-      setFiltered(companies);
-    } else {
-      const lower = q.toLowerCase();
-      setFiltered(
-        companies.filter(
-          (c) =>
-            c.companyName?.toLowerCase().includes(lower) ||
-            c.location?.toLowerCase().includes(lower) ||
-            c.industry?.toLowerCase().includes(lower),
-        ),
-      );
-    }
+  // Đổi từ khoá → về trang 1
+  useEffect(() => setPage(1), [q]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+  const topRef = useRef<HTMLDivElement>(null);
+  const goPage = (p: number) => {
+    setPage(p);
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
-    <Container size="wide" className="py-10">
-      {/* Page header */}
-      <PageHeader
-        eyebrow="Đối tác tuyển dụng"
-        title="Danh sách công ty"
-        description="Khám phá các doanh nghiệp IT hàng đầu tuyển dụng nhân tài tiếng Hàn"
-        className="mb-8"
-      />
-
-      {/* Search */}
-      <div className="relative max-w-md mb-8">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={handleSearch}
-          placeholder="Tìm theo tên công ty, địa điểm, lĩnh vực..."
-          className="pl-10 h-11 bg-card border-border text-sm"
+    <Section>
+      <Container>
+        <PageHeader
+          kr="기업 정보"
+          eyebrow="Nhà tuyển dụng"
+          title="Công ty công nghệ Hàn Quốc"
+          description="Khám phá doanh nghiệp Hàn đang tuyển kỹ sư biết tiếng Hàn."
         />
-      </div>
 
-      {/* Results count */}
-      {!loading && (
-        <div className="text-xs text-muted-foreground font-semibold mb-6">
-          Tìm thấy <span className="text-primary font-extrabold">{filtered.length}</span> công ty
-          {totalPages > 1 && <span className="ml-2 text-muted-foreground/70">— Trang {currentPage}/{totalPages}</span>}
+        <div ref={topRef} className="relative mt-8 max-w-md scroll-mt-24">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo tên hoặc ngành…" className="pl-10" />
         </div>
-      )}
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1,2,3,4,5,6].map((i) => (
-            <div key={i} className="h-48 rounded-lg bg-card border border-border animate-pulse p-5 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-md bg-secondary" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-2/3 bg-secondary rounded" />
-                  <div className="h-3 w-1/2 bg-secondary rounded" />
-                </div>
-              </div>
-              <div className="h-3 w-full bg-secondary rounded" />
-              <div className="h-3 w-3/4 bg-secondary rounded" />
-            </div>
-          ))}
-        </div>
-      ) : error ? (
-        <EmptyState icon={<HelpCircle className="size-6" />} title="Không tải được danh sách" description={error} />
-      ) : paginated.length === 0 ? (
-        <EmptyState
-          icon={<HelpCircle className="size-6" />}
-          title="Không tìm thấy công ty nào"
-          description="Thử từ khóa khác hoặc xóa bộ lọc."
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {paginated.map((company) => (
-            <Link
-              key={company.companyId}
-              to={`/companies/${company.companyId}`}
-              className="group p-5 bg-card border border-border rounded-lg hover:border-primary/40 hover:shadow-sm transition-all"
-            >
-              <div className="flex items-start gap-3 mb-4">
-                {company.logoUrl ? (
-                  <img
-                    src={getUploadedFileUrl(company.logoUrl)}
-                    alt={company.companyName}
-                    className="w-12 h-12 rounded-md object-contain bg-background border border-border p-1"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center shrink-0">
-                    <Building2 className="w-6 h-6 text-primary" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors truncate">
-                    {company.companyName}
-                  </h3>
-                  {company.industry && (
-                    <span className="text-[10px] text-muted-foreground font-medium">{company.industry}</span>
-                  )}
-                  {company.isVerified && (
-                    <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
-                      Đã xác thực
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {company.description && (
-                <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">{company.description}</p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                {company.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />{company.location}
-                  </span>
-                )}
-                {company.companySize && (
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />{company.companySize} nhân viên
-                  </span>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="mt-10 flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="rounded-lg gap-1.5 text-xs font-semibold"
-          >
-            <ChevronLeft className="w-4 h-4" />Trước
-          </Button>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-              .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
-                acc.push(p);
-                return acc;
-              }, [])
-              .map((p, i) =>
-                p === '...' ? (
-                  <span key={`e-${i}`} className="px-2 text-xs text-muted-foreground">…</span>
-                ) : (
-                  <button
-                    key={p}
-                    onClick={() => setCurrentPage(p as number)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                      currentPage === p
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
-                    }`}
+        <div className="mt-8">
+          {loading ? (
+            <LoadingBlock />
+          ) : error ? (
+            <EmptyState icon={<Building2 />} title="Có lỗi xảy ra" description={error} />
+          ) : filtered.length === 0 ? (
+            <EmptyState icon={<Building2 />} title="Không tìm thấy công ty" description="Thử từ khoá khác." />
+          ) : (
+            <>
+            <p className="mb-4 text-sm text-muted-foreground">
+              <span className="signage-num font-medium text-foreground">{filtered.length}</span> công ty
+            </p>
+            <Stagger key={safePage} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {paged.map((c) => (
+                <StaggerItem key={c.id}>
+                  <Link
+                    to={`/companies/${c.id}`}
+                    className="group flex h-full flex-col gap-4 rounded-lg border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-md"
                   >
-                    {p}
-                  </button>
-                ),
-              )}
-          </div>
+                    <div className="flex items-center gap-3">
+                      <CompanyLogo name={c.name} logoUrl={c.logoUrl} size={48} />
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1 truncate font-semibold group-hover:text-primary">
+                          {c.name}
+                          {c.isVerified && <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />}
+                        </p>
+                        {c.koreanName && <p className="bilingual-kr truncate" lang="ko">{c.koreanName}</p>}
+                      </div>
+                    </div>
+                    <div className="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {c.industry && <Badge variant="outline">{c.industry}</Badge>}
+                      {c.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {c.location}</span>}
+                    </div>
+                    {typeof c.jobsCount === 'number' && c.jobsCount > 0 && (
+                      <span className="text-sm font-medium text-primary">
+                        <span className="signage-num">{c.jobsCount}</span> tin đang tuyển →
+                      </span>
+                    )}
+                  </Link>
+                </StaggerItem>
+              ))}
+            </Stagger>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="rounded-lg gap-1.5 text-xs font-semibold"
-          >
-            Tiếp<ChevronRight className="w-4 h-4" />
-          </Button>
+            {totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-4">
+                <Button variant="outline" disabled={safePage <= 1} onClick={() => goPage(safePage - 1)}>Trước</Button>
+                <span className="signage-num text-sm text-muted-foreground">Trang {safePage} / {totalPages}</span>
+                <Button variant="outline" disabled={safePage >= totalPages} onClick={() => goPage(safePage + 1)}>Sau</Button>
+              </div>
+            )}
+            </>
+          )}
         </div>
-      )}
-    </Container>
+      </Container>
+    </Section>
   );
 }

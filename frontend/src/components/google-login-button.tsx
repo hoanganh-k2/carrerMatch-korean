@@ -1,102 +1,71 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { googleLoginApi } from '@/lib/api';
-import { useAuth, homePathForRole } from '@/context/auth-context';
 
-// Khai báo tối thiểu cho Google Identity Services (script nạp trong index.html)
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: {
-            client_id: string;
-            callback: (resp: { credential: string }) => void;
-          }) => void;
-          renderButton: (
-            parent: HTMLElement,
-            options: Record<string, unknown>,
-          ) => void;
-        };
-      };
-    };
-  }
+interface GoogleLoginButtonProps {
+  /** Gọi khi backend trả về phiên đăng nhập ({ accessToken, user }) */
+  onSuccess: (data: any) => void;
+  onError?: (message: string) => void;
 }
 
 /**
- * Nút "Đăng nhập bằng Google" dùng Google Identity Services (luồng ID token).
- * Lấy credential rồi gọi backend /auth/google, sau đó signIn như đăng nhập thường.
+ * Nút đăng nhập Google (Google Identity Services).
+ * GIS được nạp qua <script> trong index.html; client id lấy từ VITE_GOOGLE_CLIENT_ID.
  */
-export function GoogleLoginButton() {
-  const { signIn } = useAuth();
-  const navigate = useNavigate();
-  const btnRef = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-
-  const handleCredential = useCallback(
-    async (resp: { credential: string }) => {
-      setError(null);
-      try {
-        const result = await googleLoginApi(resp.credential);
-        const role = await signIn(result);
-        navigate(homePathForRole(role), { replace: true });
-      } catch (e: any) {
-        setError(e?.message || 'Đăng nhập Google thất bại');
-      }
-    },
-    [signIn, navigate],
-  );
+export function GoogleLoginButton({ onSuccess, onError }: GoogleLoginButtonProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
-    if (!clientId) return;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setUnavailable(true);
+      return;
+    }
+
     let cancelled = false;
 
-    const tryInit = () => {
-      if (cancelled) return;
-      const id = window.google?.accounts?.id;
-      if (id && btnRef.current) {
-        id.initialize({ client_id: clientId, callback: handleCredential });
-        id.renderButton(btnRef.current, {
-          theme: 'outline',
-          size: 'large',
-          text: 'continue_with',
-          shape: 'pill',
-          width: 320,
-          locale: 'vi',
-        });
-      } else {
-        // Script GIS nạp async — thử lại tới khi sẵn sàng
-        setTimeout(tryInit, 300);
+    const handleCredential = async (response: { credential: string }) => {
+      try {
+        const data = await googleLoginApi(response.credential);
+        if (!cancelled) onSuccess(data);
+      } catch (e) {
+        onError?.(e instanceof Error ? e.message : 'Đăng nhập Google thất bại');
       }
     };
-    tryInit();
+
+    // GIS nạp bất đồng bộ — chờ window.google sẵn sàng
+    const tryInit = () => {
+      const g = window.google;
+      if (!g?.accounts?.id || !ref.current) return false;
+      g.accounts.id.initialize({ client_id: clientId, callback: handleCredential });
+      g.accounts.id.renderButton(ref.current, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        logo_alignment: 'left',
+        width: Math.min(ref.current.clientWidth || 320, 400),
+      });
+      return true;
+    };
+
+    if (!tryInit()) {
+      const id = window.setInterval(() => {
+        if (tryInit() || cancelled) window.clearInterval(id);
+      }, 200);
+      window.setTimeout(() => window.clearInterval(id), 5000);
+      return () => {
+        cancelled = true;
+        window.clearInterval(id);
+      };
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [clientId, handleCredential]);
+  }, [onSuccess, onError]);
 
-  if (!clientId) {
-    return (
-      <div className="p-3 rounded-xl bg-secondary/60 border border-dashed border-border text-[11px] text-muted-foreground text-center">
-        Đăng nhập Google chưa bật — hãy điền <span className="font-semibold">VITE_GOOGLE_CLIENT_ID</span> vào{' '}
-        <span className="font-semibold">frontend/.env</span>.
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div ref={btnRef} className="flex justify-center min-h-[40px]" />
-      {error && (
-        <div className="text-[11px] text-destructive flex items-center gap-1.5">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-          {error}
-        </div>
-      )}
-    </div>
-  );
+  if (unavailable) return null;
+  return <div ref={ref} className="flex min-h-[44px] w-full justify-center" />;
 }

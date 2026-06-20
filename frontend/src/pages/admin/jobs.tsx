@@ -1,110 +1,77 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Loader2, Search, Trash2 } from 'lucide-react';
+import { Trash2, Briefcase, ExternalLink } from 'lucide-react';
+import { fetchJobsPaged, adminDeleteJob, type Job, type Paged } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
-import { fetchJobs, adminDeleteJob, type Job } from '@/lib/api';
+import { DashboardShell, adminNav } from '@/components/layout/dashboard-shell';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { LoadingBlock } from '@/components/ui/spinner';
+import { EmptyState } from '@/components/ui/empty-state';
+import { topikLabel, formatSalary } from '@/lib/utils';
 
-export default function AdminJobsPage() {
+const LIMIT = 6;
+
+export function AdminJobsPage() {
   const { token } = useAuth();
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [data, setData] = useState<Paged<Job> | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const load = async () => {
-    try {
-      setJobs(await fetchJobs());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = useCallback(() => {
+    setLoading(true);
+    fetchJobsPaged({ page, limit: LIMIT }).then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, [page]);
 
-  useEffect(() => {
+  useEffect(() => { load(); }, [load]);
+
+  const remove = async (id: string) => {
+    if (!token || !confirm('Xóa tin tuyển dụng này khỏi hệ thống?')) return;
+    await adminDeleteJob(id, token);
     load();
-  }, []);
-
-  const filtered = useMemo(
-    () =>
-      jobs.filter(
-        (j) =>
-          !search ||
-          j.title.toLowerCase().includes(search.toLowerCase()) ||
-          (j.company?.companyName ?? '').toLowerCase().includes(search.toLowerCase()),
-      ),
-    [jobs, search],
-  );
-
-  const handleDelete = async (id: string) => {
-    if (!token) return;
-    if (!confirm('Xóa tin tuyển dụng này? Hành động không thể hoàn tác.')) return;
-    setBusyId(id);
-    try {
-      await adminDeleteJob(id, token);
-      await load();
-    } catch (err: any) {
-      alert(err.message || 'Xóa tin thất bại');
-    } finally {
-      setBusyId(null);
-    }
   };
 
-  if (loading) {
-    return (
-      <main className="max-w-6xl mx-auto px-6 py-24 text-center">
-        <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
-      </main>
-    );
-  }
+  const totalPages = data?.totalPages ?? 1;
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 w-full space-y-6">
-      <div className="space-y-2">
-        <p className="eyebrow">Kiểm duyệt</p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <Briefcase className="w-6 h-6 text-primary" />
-          Kiểm duyệt tin tuyển dụng
-        </h1>
-        <p className="text-sm text-muted-foreground">Tổng {jobs.length} tin. Xóa các tin vi phạm.</p>
-      </div>
-
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm theo tiêu đề hoặc công ty..."
-          className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-md text-xs focus:outline-none focus:border-primary"
-        />
-      </div>
-
-      <div className="bg-card border border-border rounded-lg divide-y divide-border">
-        {filtered.length === 0 ? (
-          <div className="px-4 py-10 text-center text-muted-foreground italic text-xs">Không có tin nào</div>
-        ) : (
-          filtered.map((j) => (
-            <div key={j.id} className="flex items-center justify-between gap-4 p-4">
-              <div className="min-w-0">
-                <Link to={`/jobs/${j.id}`} className="block font-bold text-sm text-foreground hover:text-primary truncate">
-                  {j.title}
-                </Link>
-                <span className="text-[11px] text-muted-foreground">
-                  {j.company?.companyName || '—'} • {j.location} • {j.status || 'active'}
-                </span>
+    <DashboardShell nav={adminNav} kr="채용 관리" eyebrow="Quản trị" title="Kiểm duyệt tin tuyển dụng"
+      description={data ? `Tổng ${data.total} tin trong hệ thống.` : undefined}>
+      {loading ? (
+        <LoadingBlock />
+      ) : !data || data.data.length === 0 ? (
+        <EmptyState icon={<Briefcase />} title="Không có tin tuyển dụng" />
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-lg border border-border">
+            {data.data.map((j, i) => (
+              <div key={j.id} className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 last:border-0">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="signage-num w-7 shrink-0 text-center text-sm font-semibold text-muted-foreground">{(page - 1) * LIMIT + i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{j.title}</p>
+                    <p className="flex items-center gap-2 truncate text-xs text-muted-foreground">
+                      {j.company?.companyName ?? '—'}
+                      <Badge variant="outline">{topikLabel(j.minTopikRequired)}</Badge>
+                      <span className="signage-num">{formatSalary(j.salaryMin, j.salaryMax)}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Link to={`/jobs/${j.id}`} className="rounded-md p-2 text-muted-foreground hover:bg-accent" aria-label="Xem"><ExternalLink className="h-4 w-4" /></Link>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => remove(j.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
               </div>
-              <button
-                onClick={() => handleDelete(j.id)}
-                disabled={busyId === j.id}
-                className="px-3 py-2 border border-destructive/40 text-destructive font-semibold text-xs rounded-lg hover:bg-destructive/10 flex items-center gap-1.5 shrink-0 disabled:opacity-50"
-              >
-                {busyId === j.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                Xóa
-              </button>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Trước</Button>
+              <span className="signage-num text-sm text-muted-foreground">Trang {page} / {totalPages}</span>
+              <Button variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Sau</Button>
             </div>
-          ))
-        )}
-      </div>
-    </main>
+          )}
+        </>
+      )}
+    </DashboardShell>
   );
 }
